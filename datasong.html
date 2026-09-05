@@ -65,8 +65,19 @@
     border-radius:var(--r);padding:clamp(16px,3vw,24px);
   }
   .card + .card{margin-top:var(--s5)}
-  .card h2{font-size:1.05rem;font-weight:600;margin-bottom:var(--s4);color:var(--ink)}
+  .card h2{font-size:1.05rem;font-weight:600;margin-bottom:var(--s2);color:var(--ink)}
   .card h2 .n{color:var(--dim);font-weight:400;margin-inline-end:var(--s1)}
+  .cardlead{font-size:.85rem;color:var(--dim);margin-bottom:var(--s4);max-width:72ch;line-height:1.65}
+  .about{font-size:.82rem;color:var(--dim);line-height:1.6;margin-bottom:var(--s3);
+    border-inline-start:2px solid var(--c,var(--line));padding-inline-start:var(--s2)}
+  .about em{font-style:normal;color:var(--ink)}
+  .presetsw{margin-top:var(--s4)}
+  .tip{
+    display:inline-flex;align-items:center;justify-content:center;
+    width:16px;height:16px;border-radius:50%;border:1px solid var(--line);
+    font-size:.68rem;color:var(--dim);cursor:help;flex:none;
+  }
+  .tip:hover{border-color:var(--gold);color:var(--gold)}
 
 /* ---------- ויזואליזציה ---------- */
   .stage{
@@ -80,6 +91,30 @@
   }
   .now .lbl{color:var(--gold);font-weight:600}
   .now .val{font-variant-numeric:tabular-nums;white-space:nowrap}
+
+/* ---------- לוח הפרשנות ---------- */
+  .interp{
+    margin-top:var(--s3);padding:var(--s3) var(--s4);
+    background:var(--panel2);border:1px solid var(--line);border-radius:var(--r);
+    display:grid;gap:var(--s2);
+  }
+  .interp[hidden]{display:none}
+  /* במסך צר התווית מעל הטקסט, אחרת עמודת הטקסט נחנקת לרוחב של שתי מילים */
+  .ip{font-size:.86rem;line-height:1.65;color:var(--ink);margin:0;
+      display:grid;grid-template-columns:1fr;gap:var(--s1)}
+  @media(min-width:560px){
+    .ip{grid-template-columns:auto 1fr;gap:var(--s3);align-items:baseline}
+  }
+  .ip .ik{
+    font-size:.7rem;letter-spacing:.04em;font-weight:700;color:var(--dim);
+    white-space:nowrap;padding-top:2px;
+    border-inline-start:2px solid var(--line);padding-inline-start:var(--s2);
+  }
+  .ip.story .ik{border-color:var(--teal)}
+  .ip.listen .ik{border-color:var(--gold);color:var(--gold)}
+  .ip.listen{color:var(--ink)}
+  .ip.src{font-size:.76rem;color:var(--dim)}
+  .ip.src .ik{border-color:var(--line)}
 
 /* ---------- טעינת דאטה ---------- */
   .loader{display:flex;flex-direction:column;gap:var(--s3)}
@@ -226,16 +261,25 @@
         <span class="lbl" id="title">— טענו נתונים כדי להתחיל —</span>
         <span class="val" id="readout"></span>
       </div>
+
+      <!-- פרשנות: מה הנתונים מספרים, ומה האוזן אמורה לתפוס -->
+      <div class="interp" id="interp" hidden>
+        <p class="ip story"><span class="ik">הנתונים</span><span id="ipStory"></span></p>
+        <p class="ip listen"><span class="ik">מה שומעים</span><span id="ipListen"></span></p>
+        <p class="ip src"  id="ipSrcWrap"><span class="ik">מקור</span><span id="ipSrc"></span></p>
+      </div>
       <div class="row" style="margin-top:var(--s4)">
-        <button class="btn play" id="play" disabled>נגן</button>
-        <button class="btn ghost" id="pause" disabled>השהה</button>
-        <button class="btn ghost" id="stop" disabled>עצור</button>
+        <button class="btn play" id="play" title="מנגן את כל המאגר מהתחלה לסוף. אפשר גם ברווח במקלדת." disabled>נגן</button>
+        <button class="btn ghost" id="pause" title="עוצר במקום ושומר את הנקודה. לחיצה על ״המשך״ ממשיכה בדיוק משם." disabled>השהה</button>
+        <button class="btn ghost" id="stop" title="עוצר ומחזיר להתחלה." disabled>עצור</button>
       </div>
       <div class="globals">
         <div class="field">
           <label for="tempo">אורך המסע: <span id="tempoV">20</span> שנ׳</label>
           <input type="range" id="tempo" min="5" max="120" value="20" step="1">
           <div class="hint" id="rateHint"></div>
+          <div class="hint">כל הדאטה נדחס לזמן הזה. ארוך — כל נקודה נושמת והיצירה מדיטטיבית;
+            קצר — המגמה הכללית בולטת והפרטים מיטשטשים.</div>
         </div>
         <div class="field">
           <label for="scale">סולם הרמוני</label>
@@ -246,6 +290,8 @@
             <option value="dorian">דוריאני — נוגה-חמים</option>
             <option value="chromatic">כרומטי — נאמן לדאטה</option>
           </select>
+          <div class="hint">הסולם קובע לאילו צלילים המספרים "נצמדים". פנטטוני פיזית לא יכול
+            להישמע צורם; כרומטי משמר כל הפרש קטן בדאטה — מדויק, אך חד לאוזן.</div>
         </div>
         <div class="field">
           <label for="root">טוניקה</label>
@@ -255,6 +301,8 @@
             <option value="7" selected>סול (G)</option><option value="9">לה (A)</option>
             <option value="11">סי (B)</option>
           </select>
+          <div class="hint">הצליל שסביבו כל השכבות מסתדרות. משנה את הצבע הרגשי בלי לגעת בנתונים —
+            אותה יצירה, מזג אוויר אחר.</div>
         </div>
       </div>
     </div>
@@ -262,6 +310,8 @@
     <!-- ================= 02 · הנתונים ================= -->
     <div class="card">
       <h2><span class="n">02</span>הנתונים</h2>
+      <p class="cardlead">כל סדרת מספרים שיש בה סדר פנימי — מרחב, זמן, כמות — יכולה להישמע.
+        גררו קובץ, או הדביקו טבלה ישר מגיליון.</p>
       <div class="loader">
         <label class="drop" id="drop">
           גררו לכאן קובץ <b>.json</b> / <b>.csv</b> או לחצו לבחירה
@@ -269,7 +319,7 @@
         </label>
         <textarea id="paste" placeholder="…או הדביקו כאן: עמודת מספרים, שורה מופרדת בפסיקים, או טבלת CSV שלמה עם כותרות. למשל:&#10;עומק,מליחות,טמפרטורה&#10;0,35.1,24.2&#10;10,35.4,23.8"></textarea>
         <div class="row">
-          <button class="btn" id="load">טען מההדבקה</button>
+          <button class="btn" id="load" title="מזהה לבד CSV עם כותרות, עמודת מספרים, או שורה מופרדת בפסיקים.">טען מההדבקה</button>
         </div>
 
         <!-- שמירה לספרייה — מופיעה רק אחרי שנטענו נתונים -->
@@ -290,13 +340,22 @@
   <!-- ================= 03 · הספרייה ================= -->
   <div class="card">
     <h2><span class="n">03</span>הספרייה — לחיצה מנגנת</h2>
+    <p class="cardlead">שמונה מאגרים מעולם התכנון, כל אחד עם צורה אחרת — קשת, שני שיאים,
+      עלייה מתמדת, קפיצות, צלילה. שווה להאזין לכמה ברצף: ההבדל בין הצורות נשמע מיד.</p>
     <div class="chips" id="library"></div>
+    <label class="sw presetsw"><input type="checkbox" id="applyPreset" checked>
+      החל הגדרה מומלצת עם טעינת דוגמה מובנית
+      <span class="tip" title="לכל מאגר נבחרו סולם, כלים ואורך שמדגישים את אופיו. כבו כדי לשמור על ההגדרות שלכם ולהשוות מאגרים באותו צליל.">?</span>
+    </label>
     <p class="libnote" id="libNote"></p>
   </div>
 
   <!-- ================= 04 · המכוונים ================= -->
   <div class="card">
     <h2><span class="n">04</span>המכוונים — שכבה, מקור וצליל</h2>
+    <p class="cardlead">ארבע שכבות, וכל אחת יכולה לשאוב מעמודה אחרת בדאטה. כאן נמצא החופש:
+      אותם מספרים בדיוק נשמעים אחרת לגמרי כשהם מנהלים את הביס במקום את המנגינה.
+      כבו שכבה כדי לשמוע מה היא תרמה.</p>
     <div class="layers" id="layers"></div>
 
     <details class="adv">
@@ -324,10 +383,12 @@
   <!-- ================= 05 · ייצוא ================= -->
   <div class="card">
     <h2><span class="n">05</span>ייצוא</h2>
+    <p class="cardlead">ה-WAV הוא הקלטה של בדיוק מה שנשמע כאן — אפשר להכניס אותו למצגת, לסרטון
+      או לעריכה מוזיקלית. ה-PNG/SVG הוא הגרף עצמו, בלי הסמן, מוכן למאמר או ללוח מצגת.</p>
     <div class="row">
-      <button class="btn sm" id="expWav" disabled>הורד WAV</button>
-      <button class="btn sm ghost" id="expPng" disabled>הורד PNG</button>
-      <button class="btn sm ghost" id="expSvg" disabled>הורד SVG</button>
+      <button class="btn sm" id="expWav" title="מרנדר את היצירה לקובץ שמע. לוקח זמן — הריוורב יקר חישובית." disabled>הורד WAV</button>
+      <button class="btn sm ghost" id="expPng" title="תמונת הגרף ברזולוציה כפולה, רקע אטום." disabled>הורד PNG</button>
+      <button class="btn sm ghost" id="expSvg" title="וקטור — נשאר חד בכל הגדלה, ניתן לעריכה." disabled>הורד SVG</button>
       <span class="status" id="expStatus" style="flex:1"></span>
     </div>
     <progress id="expProg" max="100" value="0" hidden></progress>
@@ -338,7 +399,7 @@
     ו<code>קול</code> הם <b>סימולציה של קול אנושי</b> — נעימים, אך לא זמר אמיתי.
     קלט נתמך: <code>CSV/TSV</code> עם כותרות, <code>{ "title", "melody":[…], "labels":[…] }</code>,
     או סתם עמודת מספרים. מעל 512 נקודות — הדאטה מדוגם מחדש כדי שיישאר מוזיקלי.
-    <span id="sampleNote"></span>
+   
   </p>
 </div>
 
@@ -349,32 +410,78 @@
    כל פריט נושא `source` שאומר מאיפה הנתונים. פריטים המסומנים "המחשה"
    מחוללים מנוסחה ואינם מתיימרים לתאר מדידה אמיתית של העולם.
    ========================================================================== */
-const SAMPLES = [
-  {
-    id:'ashdod',
-    title:'אשדוד — פרופיל הגובה מהים אל השפלה',
-    source:'נתוני הדגמה שסופקו עם הפרויקט · מסע ממערב למזרח, כ־8 ק״מ',
-    labels:['חוף','','','','','','','','רכס כורכר','','','','','שקע','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','מזרח'],
-    values:[0,0,1,3,6,11,18,26,33,37,35,30,24,18,14,12,13,15,16,15,14,13,14,16,19,22,24,25,24,23,24,26,29,32,34,35,36,38,41,44,46,47,48,50,53,56,58,60,63,66,68,70,73,76,79,82,85,88,91,95],
-    name:'גובה (מ׳)'
-  },
-  {
-    id:'sine', title:'גל סינוס — המחשה', name:'משרעת',
-    source:'המחשה: מחולל מנוסחה, לא מדידה. מראה איך צורה חלקה נשמעת.',
-    gen:n=>Array.from({length:n},(_,i)=>50+45*Math.sin(i/n*Math.PI*4)), n:96
-  },
-  {
-    id:'growth', title:'צמיחה מעריכית — המחשה', name:'ערך',
-    source:'המחשה: מחולל מנוסחה, לא מדידה. עלייה מתמדת בלי חזרה.',
-    gen:n=>Array.from({length:n},(_,i)=>Math.pow(1.055,i)), n:80
-  },
-  {
-    id:'walk', title:'הילוך אקראי — המחשה', name:'מיקום',
-    source:'המחשה: מחולל מנוסחה עם זרע קבוע. דאטה סוער — שומעים את שכבת הקצב.',
-    gen:n=>{let s=12345,v=50;const seed=()=>((s=(s*1103515245+12345)&0x7fffffff)/0x7fffffff);
-      return Array.from({length:n},()=>{v+=(seed()-.5)*14;return v;});}, n:120
-  }
+const SAMPLE_DATA = [
+  {id:'01_ashdod_elevation', json:{"title": "פרופיל הגובה של אשדוד — מהים אל השפלה", "hint": "מסע מערב→מזרח לאורך ~8 קמ · מקור: פרופיל מייצג (משוער)", "melody": [0, 0, 1, 3, 6, 11, 18, 26, 33, 37, 35, 30, 24, 18, 14, 12, 13, 15, 16, 15, 14, 13, 14, 16, 19, 22, 24, 25, 24, 23, 24, 26, 29, 32, 34, 35, 36, 38, 41, 44, 46, 47, 48, 50, 53, 56, 58, 60, 63, 66, 68, 70, 73, 76, 79, 82, 85, 88, 91, 95], "labels": ["חוף", "", "", "", "", "", "", "", "רכס כורכר", "", "", "", "", "שקע", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "מזרח"]}},
+  {id:'02_density_transect', json:{"title": "צפיפות מגורים לאורך חתך עירוני", "hint": "נפש לדונם, פאתר→מרכז→פאתר · פרופיל מייצג (משוער)", "melody": [16.7, 16.4, 21.9, 19.1, 25.1, 26.5, 27.4, 34.9, 35.7, 44.0, 46.8, 53.1, 62.2, 72.1, 73.2, 80.4, 89.7, 97.6, 99.1, 101.1, 107.9, 101.4, 107.4, 101.0, 96.8, 92.4, 88.8, 87.0, 75.6, 72.2, 66.0, 57.3, 52.4, 42.7, 37.4, 33.8, 33.5, 27.9, 24.1, 23.8, 20.8, 18.0, 20.7, 19.0, 14.7, 16.8, 16.1, 18.6], "labels": null}},
+  {id:'03_daily_traffic', json:{"title": "נפח תנועה יומי בצומת עירוני", "hint": "מדד תנועה לפי שעה, 00:00→23:00 · פרופיל מייצג (משוער)", "melody": [9.4, 6.7, 10.9, 5.7, 8.0, 14.5, 32.3, 79.6, 105.2, 80.7, 35.9, 13.4, 10.7, 7.1, 10.8, 18.1, 41.6, 77.8, 100.0, 80.8, 41.0, 18.5, 7.0, 9.4], "bass": [23.8, 22.7, 24.4, 22.3, 23.2, 25.8, 32.9, 51.8, 62.1, 52.3, 34.4, 25.4, 24.3, 22.8, 24.3, 27.2, 36.6, 51.1, 60.0, 52.3, 36.4, 27.4, 22.8, 23.8], "labels": ["00:00", "", "", "", "", "", "", "", "שיא בוקר", "", "", "", "", "", "", "", "", "", "שיא ערב", "", "", "", "", "23:00"]}},
+  {id:'04_skyline_street', json:{"title": "קו רקיע — גובה מבנים לאורך רחוב", "hint": "מספר קומות לאורך ציר · פרופיל מייצג (משוער)", "melody": [3.1, 4.3, 3.2, 5.9, 7.9, 5.1, 3.7, 12.0, 14.8, 8.8, 5.7, 4.2, 2.8, 4.8, 6.9, 20.2, 21.7, 18.0, 10.0, 6.2, 4.2, 4.2, 7.9, 13.9, 15.9, 12.2, 7.3, 4.8, 3.8, 2.8, 5.8, 9.0, 11.1, 7.9, 4.7, 4.0, 2.9, 3.0, 4.3, 6.1]}},
+  {id:'05_population_growth', json:{"title": "גידול אוכלוסייה לאורך 40 שנה", "hint": "אלפי תושבים, שנה→שנה · פרופיל מייצג (משוער)", "melody": [8.3, 8.7, 9.1, 9.3, 9.8, 10.3, 10.8, 11.3, 11.8, 12.2, 12.5, 13.1, 13.4, 13.8, 14.2, 14.7, 15.2, 15.6, 16.0, 16.4, 16.9, 17.5, 17.9, 18.9, 19.7, 20.3, 20.9, 21.7, 22.4, 23.1, 24.3, 25.6, 26.6, 27.6, 28.4, 29.2, 30.2, 31.2, 32.8, 33.8], "bass": [5.0, 5.2, 5.4, 5.6, 5.9, 6.2, 6.5, 6.8, 7.1, 7.3, 7.5, 7.8, 8.1, 8.3, 8.5, 8.8, 9.1, 9.3, 9.6, 9.9, 10.1, 10.5, 10.8, 11.3, 11.8, 12.2, 12.6, 13.0, 13.5, 13.9, 14.6, 15.4, 16.0, 16.6, 17.0, 17.5, 18.1, 18.7, 19.7, 20.3], "labels": ["שנה 1", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "אמצע", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "היום"]}},
+  {id:'06_green_transect', json:{"title": "מדד צמחייה (ירוק עירוני) לאורך חתך", "hint": "אחוז כיסוי ירוק, רחוב→פארק→רחוב · פרופיל מייצג (משוער)", "melody": [12.2, 17.7, 15.2, 13.0, 15.5, 12.7, 16.1, 19.5, 19.8, 20.4, 20.0, 23.8, 26.8, 35.7, 40.6, 49.4, 54.6, 61.9, 73.0, 80.5, 84.3, 86.5, 86.6, 83.7, 75.9, 71.2, 62.7, 52.7, 44.8, 39.1, 32.6, 29.9, 27.3, 21.1, 21.8, 20.5, 19.3, 15.1, 13.8, 13.6, 13.3, 13.3, 15.8, 17.4], "labels": ["רחוב", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "לב הפארק", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "רחוב"]}},
+  {id:'07_air_quality', json:{"title": "איכות אוויר יומית (חלקיקים)", "hint": "ריכוז PM2.5 לפי שעה · פרופיל מייצג (משוער)", "melody": [20.2, 18.4, 19.3, 20.0, 16.9, 21.9, 29.7, 39.4, 44.8, 37.9, 26.1, 22.6, 18.1, 20.1, 21.0, 19.0, 22.1, 32.0, 40.1, 41.9, 37.1, 28.0, 24.7, 21.1], "labels": ["לילה", "", "", "", "", "", "", "", "עומס בוקר", "", "", "", "", "", "", "", "", "", "", "עומס ערב", "", "", "", "לילה"]}},
+  {id:'08_lachish_crosssection', json:{"title": "חתך רוחב של נחל לכיש — גדה אל גדה", "hint": "גובה קרקע לרוחב האפיק · פרופיל מייצג (משוער)", "melody": [19.7, 20.6, 21.2, 21.3, 21.4, 21.9, 22.0, 22.2, 23.3, 23.4, 23.6, 24.2, 24.1, 24.7, 24.9, 24.5, 24.5, 24.2, 23.3, 22.0, 19.3, 16.3, 12.6, 10.3, 8.1, 8.2, 10.0, 13.2, 16.3, 19.8, 21.9, 23.5, 24.4, 24.3, 24.7, 24.4, 24.0, 24.4, 23.6, 23.6, 23.5, 23.0, 22.5, 22.3, 21.9, 21.7, 20.8, 20.8, 20.2, 19.8], "labels": ["גדה צפונית", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "אפיק", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "גדה דרומית"]}}
 ];
+
+/* פרשנות לכל מאגר: מה הנתונים מספרים, ומה האוזן אמורה לתפוס — ולמה.
+   ה-preset הוא נקודת פתיחה שמדגישה את אופי המאגר, לא כלל. */
+const SAMPLE_NOTES = {
+  '01_ashdod_elevation':{
+    short:'הקרקע עולה מהמים אל הרכס, צונחת לשקע, ואז מטפסת בלי לחזור.',
+    story:'חתך גובה ממערב למזרח: קו המים, רכס הכורכר שחוסם אותו, השקע שמאחוריו, ומשם עלייה מתמדת אל השפלה. זו הצורה שקובעת איפה העיר יכולה הייתה להיבנות.',
+    listen:'שלוש תנועות: טיפוס ראשון אל הרכס, נפילה קצרה, ואז עלייה ארוכה שלא נעצרת. הצליל הגבוה ביותר הוא הסוף, לא האמצע — וזה בדיוק ההבדל בין רכס לבין מדרון.',
+    preset:{scale:'pent', mel:'harp', har:'pad', bas:'pad', per:'shaker', duration:26}
+  },
+  '02_density_transect':{
+    short:'צפיפות שמתפוצצת במרכז ונרגעת אל הפאתר — קשת סימטרית.',
+    story:'נפש לדונם לאורך חתך: פאתר → מרכז → פאתר. העלייה תלולה והירידה מתונה, וזה הסיפור — מרכז נבנה מהר יותר משהוא מתפוגג.',
+    listen:'קשת אחת גדולה. הפסגה מגיעה קצת אחרי האמצע, ולכן הירידה ארוכה מהעלייה. הדרון מתחת מחזיק את המרכז גם כשהמנגינה כבר יורדת.',
+    preset:{scale:'dorian', mel:'piano', har:'choir', bas:'drone', per:'shaker', duration:22}
+  },
+  '03_daily_traffic':{
+    short:'יום שלם בצומת: שני שיאים, בוקר וערב, כמעט זהים.',
+    story:'נפח תנועה לפי שעה, מחצות לחצות. שני גלים חדים — יציאה לעבודה וחזרה — ובין שניהם שקע צהריים.',
+    listen:'המוטיב חוזר פעמיים כמעט זהה: היום מתחרז עם עצמו. שכבת הקצב מתפוצצת בדיוק בשתי הנקודות שבהן העומס נבנה ומתפרק — האוזן שומעת את שעות הפקק לפני שהעין קוראת את התוויות.',
+    preset:{scale:'minor', mel:'marimba', har:'pad', bas:'upright', per:'kit', duration:16}
+  },
+  '04_skyline_street':{
+    short:'קו רקיע קופצני — מבנה נמוך, מגדל, נמוך שוב.',
+    story:'מספר קומות לאורך רחוב. אין כאן מגמה, יש שכנות: כל מספר הוא בניין אחר, וההפרש בין שכנים הוא בדיוק מה שמרגישים כשהולכים ברחוב.',
+    listen:'המאגר הכי "מקוטע" בסט. אין קו מוביל אלא קפיצות, ולכן שכבת הקצב עובדת קשה — כל מגדל הוא חבטה. פעמוני הזכוכית הופכים כל קפיצה לנקודה בודדת במקום לקו רציף.',
+    preset:{scale:'pent', mel:'glass', har:'pad', bas:'pad', per:'wood', duration:20}
+  },
+  '05_population_growth':{
+    short:'ארבעים שנות גדילה — עלייה שכמעט לא נעצרת.',
+    story:'אלפי תושבים, שנה אחר שנה. אין דרמה ואין שיא: יש כיוון אחד, ובשליש האחרון הוא נעשה תלול יותר.',
+    listen:'המנגינה כמעט לא יורדת לאורך 34 שניות — חוויה נדירה, כי רוב הדאטה מתנדנד. הקצב דליל, כי אין כאן נקודות מפנה אמיתיות אלא רק תנודות קטנות סביב הכיוון. שימו לב להאצה בשליש האחרון: אותם צעדים בזמן, אבל מרווחים גדולים יותר בגובה.',
+    preset:{scale:'major', mel:'choir', har:'harp', bas:'cello', per:'shaker', duration:34}
+  },
+  '06_green_transect':{
+    short:'יוצאים מרחוב אפור, נכנסים ללב פארק, וחוזרים.',
+    story:'אחוז כיסוי ירוק לאורך חתך. הקצוות נמוכים ורועשים, המרכז רחב וגבוה — הפארק לא מתחיל בגדר אלא נבנה בהדרגה.',
+    listen:'המאגר הכי "נושם" בסט. הרעש הקטן בקצוות הופך לתנודות עדינות, והמרכז הוא רמה גבוהה ומוחזקת. אם תאריכו את המסע ל-40 שניות זה נשמע כמו כניסה איטית לצל.',
+    preset:{scale:'pent', mel:'voxOo', har:'pad', bas:'pad', per:'shaker', duration:30}
+  },
+  '07_air_quality':{
+    short:'מתח סביבתי שעולה בדיוק כשהעיר זזה.',
+    story:'ריכוז חלקיקים לפי שעה. אותה צורה של יום התנועה — אבל דחוסה יותר, כי האוויר מתנקה לאט מכפי שהוא מזדהם.',
+    listen:'השוו את זה ל"נפח תנועה": אותם שני שיאים, אבל כאן הירידה איטית מהעלייה. הצ׳לו מחזיק את המתח גם אחרי שהשיא עבר — וזה בדיוק ההבדל בין פקק שנגמר לבין אוויר שנשאר.',
+    preset:{scale:'minor', mel:'cello', har:'choir', bas:'drone', per:'wood', duration:18}
+  },
+  '08_lachish_crosssection':{
+    short:'שתי גדות ואפיק אחד — צלילה חדה באמצע.',
+    story:'גובה הקרקע לרוחב נחל לכיש, מגדה לגדה. הגדות כמעט שטוחות, והאפיק חותך ביניהן — עמק צר בתוך מישור.',
+    listen:'ההיפך מכל השאר: כאן השיא הוא למטה. שני מישורים גבוהים ובאמצע נפילה חדה וחזרה. עם נבל, הצלילה נשמעת כמו מפל — ואז המים חוזרים לגובה.',
+    preset:{scale:'dorian', mel:'harp', har:'choir', bas:'choir', per:'shaker', duration:24}
+  }
+};
+
+/** מיזוג: המספרים מגיעים מקבצי ה-JSON שבתיקייה, הפרשנות נכתבת לצידם. */
+const SAMPLES = SAMPLE_DATA.map(s => ({
+  id: s.id,
+  json: s.json,
+  title: s.json.title,
+  source: s.json.hint || '',
+  ...(SAMPLE_NOTES[s.id] || {})
+}));
 
 /* ==========================================================================
    06-DATA — פענוח קלט, נורמליזציה וסדרות נגזרות.
@@ -568,11 +675,18 @@ const percentile = (a,p) => {
 
 /**
  * עוצמת השינוי, מנורמלת 0..1.
- * הנרמול לפי אחוזון 90 ולא לפי המקסימום — חריג בודד לא מוחק את כל השאר.
+ *
+ * שתי החלטות, שתיהן נדרשות:
+ * 1. הנרמול לפי אחוזון 90 ולא לפי המקסימום — חריג בודד לא מוחק את כל השאר.
+ * 2. רצפה של 10% מטווח הסדרה. בלי הרצפה, נרמול יחסי מנפח ריצוד זעיר לסקאלה
+ *    מלאה: קו ישר לגמרי — שכל ההפרשים בו שווים — קיבל 50% צפיפות חבטות,
+ *    ועקומת גדילה חלקה עם ריצוד עיגול קיבלה 38%. עם הרצפה: 0% ו-15%.
+ *    כלומר השאלה היא כמה גדול השינוי ביחס לתמונה כולה, לא רק ביחס לשכניו.
  */
 function deriveDelta(arr){
   const d = arr.map((v,i)=> i===0 ? 0 : Math.abs(v-arr[i-1]));
-  const ref = percentile(d, 0.90) || Math.max(...d) || 1;
+  const range = (Math.max(...arr) - Math.min(...arr)) || 1;
+  const ref = Math.max(percentile(d, 0.90), 0.10*range) || 1;
   return d.map(v=>Math.min(1, v/ref));
 }
 
@@ -707,10 +821,18 @@ function buildScore(S){
                             └→ send   → Reverb ┘ (רטוב)
    ========================================================================== */
 const LAYERS = [
-  {k:'mel', label:'שכבה 1 · מנגינה', color:'--gold',   vol:-3,  pan:0,     rev:0.30},
-  {k:'har', label:'שכבה 2 · הרמוניה', color:'--rose',  vol:-13, pan:-0.30, rev:0.40},
-  {k:'bas', label:'שכבה 3 · ביס',     color:'--teal',  vol:-8,  pan:0.10,  rev:0.22},
-  {k:'per', label:'שכבה 4 · קצב',     color:'--violet',vol:-11, pan:0.28,  rev:0.14}
+  {k:'mel', label:'שכבה 1 · מנגינה', color:'--gold',   vol:-3,  pan:0,     rev:0.30,
+   about:'הקו שהאוזן עוקבת אחריו. כל נקודה בדאטה היא צליל אחד, וגובהו הוא הערך. ' +
+         'תנו לה את העמודה שהיא לב הסיפור — זו שהייתם מציירים בגרף.'},
+  {k:'har', label:'שכבה 2 · הרמוניה', color:'--rose',  vol:-13, pan:-0.30, rev:0.40,
+   about:'אקורדים איטיים שמתחלפים כ-16 פעמים לאורך היצירה. הם נותנים את "מזג האוויר" הרגשי. ' +
+         'עמודה שנייה כאן יוצרת מתח מעניין: שני מדדים שלא זזים יחד נשמעים כמו דיאלוג.'},
+  {k:'bas', label:'שכבה 3 · ביס',     color:'--teal',  vol:-8,  pan:0.10,  rev:0.22,
+   about:'היסוד. עוקב אחרי המגמה הרחבה ומתעלם מרעש. "דרון" מחזיק צליל אחד לאורך כל היצירה — ' +
+         'בחירה טובה כשרוצים שהמנגינה תרחף מעל משהו יציב.'},
+  {k:'per', label:'שכבה 4 · קצב',     color:'--violet',vol:-11, pan:0.28,  rev:0.14,
+   about:'חבטה בכל נקודת מפנה — לא בכל צעד. דאטה חלק יישאר כמעט שקט, דאטה סוער ייתן גרוב צפוף. ' +
+         'זו השכבה שמספרת עד כמה הנתונים "מתנהגים יפה".'}
 ];
 
 const INSTRUMENTS = {
@@ -1007,9 +1129,12 @@ function buildMixer(){
         </label>
       </summary>
       <div class="body">
+        <p class="about">${L.about}</p>
         <div class="field">
           <label for="src_${L.k}">מקור בנתונים</label>
           <select id="src_${L.k}"></select>
+          <div class="hint">"קו מוחלק" מוציא את המגמה מתוך הרעש; "קצב שינוי" מנגן את
+            <em>מהירות</em> ההשתנות במקום את הערך עצמו.</div>
         </div>
         <div class="field">
           <label for="inst_${L.k}">${L.k==='per'?'ערכת הקשה':'כלי / קול'}</label>
@@ -1245,7 +1370,7 @@ function setData(d, libId){
     `נטענו ${d.n} נקודות · ${cols} ${cols===1?'עמודה מספרית':'עמודות מספריות'}` +
     (resampled ? ' (דוגם מחדש ל-512 כדי שיישאר מוזיקלי)' : '') + '. אפשר לנגן.',
     'ok');
-  $('sampleNote').textContent = d.source ? `מקור הדוגמה הנוכחית: ${d.source}` : '';
+  showInterp(libId);
 
   // הצעת שמירה — רק למאגר שאינו כבר בספרייה, וכשהאחסון בכלל זמין
   markActive(libId || null);
@@ -1253,6 +1378,57 @@ function setData(d, libId){
   if(!$('saveRow').hidden) $('saveName').value = d.title;
 
   saveSettings();
+}
+
+/**
+ * לוח הפרשנות. למאגר מובנה — הטקסט שנכתב לו. למאגר של המשתמשת אין פרשנות
+ * כתובה, ולכן נגזרת קריאה של הצורה מתוך המספרים עצמם: בלי להמציא סיפור
+ * שאיננו בנתונים, רק תיאור של מה שהם עושים.
+ */
+function showInterp(libId){
+  const box=$('interp');
+  const built = libId && libId.startsWith('built:')
+    ? SAMPLES.find(s=>'built:'+s.id===libId) : null;
+  if(built){
+    $('ipStory').textContent  = built.story  || '';
+    $('ipListen').textContent = built.listen || '';
+    $('ipSrc').textContent    = built.source || '';
+    $('ipSrcWrap').hidden = !built.source;
+    box.hidden = false;
+    return;
+  }
+  const shape = describeShape();
+  $('ipStory').textContent  = shape.data;
+  $('ipListen').textContent = shape.sound;
+  $('ipSrc').textContent    = DATA.source || '';
+  $('ipSrcWrap').hidden = !DATA.source;
+  box.hidden = false;
+}
+
+/** קריאת הצורה של מאגר לא-מוכר: טווח, מגמה ותנודתיות. */
+function describeShape(){
+  const cols = DATA.columns.filter(c=>c.numeric);
+  const v = cols[0].values;
+  const mn=Math.min(...v), mx=Math.max(...v);
+  const third=Math.max(1,Math.floor(v.length/3));
+  const avg=a=>a.reduce((x,y)=>x+y,0)/a.length;
+  const rise=(avg(v.slice(-third))-avg(v.slice(0,third)))/((mx-mn)||1);
+  const trend = rise>0.25 ? 'עולה מההתחלה לסוף'
+              : rise<-0.25 ? 'יורדת מההתחלה לסוף'
+              : 'חוזרת בערך לאותו מקום';
+  const peakAt = Math.round(100*v.indexOf(mx)/Math.max(1,v.length-1));
+  const sc = buildScore(readSettings());
+  const dens = sc ? sc.hits.length/v.length : 0;
+  const texture = dens>0.30 ? 'מחוספס — שכבת הקצב תעבוד קשה'
+                : dens>0.12 ? 'מעורב — יש נקודות מפנה ברורות'
+                : 'חלק — הקצב יישאר דליל, וזה נכון לדאטה כזה';
+  const fmt=x=>Math.round(x*10)/10;
+  return {
+    data: `${cols.length} ${cols.length===1?'עמודה מספרית':'עמודות מספריות'} · ${DATA.n} נקודות · ` +
+          `"${cols[0].name}" נעה בין ${fmt(mn)} ל-${fmt(mx)}, והמגמה ${trend}.`,
+    sound:`השיא נמצא בערך ב-${peakAt}% מהמסע — שם יגיע הצליל הגבוה ביותר. הדאטה ${texture}. ` +
+          `נסו להחליף עמודה בכל שכבה: אותם מספרים נשמעים אחרת לגמרי כשהם מנהלים את הביס במקום את המנגינה.`
+  };
 }
 
 const readText = f => new Promise((res,rej)=>{
@@ -1293,13 +1469,24 @@ async function readFiles(files){
 }
 
 function loadSample(id){
-  const s=SAMPLES.find(x=>x.id===id);
+  const s = SAMPLES.find(x=>x.id===id);
   if(!s) return;
-  const values = s.values || s.gen(s.n);
-  const columns=[{name:s.name||'ערך', values:values.map(Number), numeric:true}];
-  if(s.labels) columns.push({name:'תוויות', values:s.labels.map(String), numeric:false});
-  setData(finalize({title:s.title, source:s.source, columns,
-    preferLabels: s.labels ? 1 : -1}), 'built:'+id);
+  // אותו מסלול פענוח כמו קובץ שנגרר פנימה — בלי ענף מיוחד לדוגמאות.
+  const d = fromJsonObject(s.json);
+  if(!d) return setStatus('הדוגמה הזו לא נטענה.','err');
+  if(s.preset && $('applyPreset').checked) applyPreset(s.preset);
+  setData(d, 'built:'+id);
+}
+
+/** ההגדרה המומלצת למאגר — נקודת פתיחה שמדגישה את אופיו, לא כלל. */
+function applyPreset(p){
+  if(p.scale) $('scale').value = p.scale;
+  if(p.duration) $('tempo').value = p.duration;
+  LAYERS.forEach(L=>{
+    if(p[L.k]){ $(`inst_${L.k}`).value = p[L.k]; $(`on_${L.k}`).checked = true; }
+  });
+  needsRebuild = true;
+  syncLabels(); updateMeta();
 }
 
 /* ==========================================================================
@@ -1393,7 +1580,7 @@ function renderLibrary(){
     wrap.appendChild(b);
   };
 
-  SAMPLES.forEach(s=>chip('built:'+s.id, s.title, s.source, 'מובנה', false,
+  SAMPLES.forEach(s=>chip('built:'+s.id, s.title, s.short || s.source, 'מובנה', false,
     ()=>loadSample(s.id), null));
   mine.forEach(e=>chip('user:'+e.id, e.title,
     `${e.columns.filter(c=>c.numeric).length} עמודות · ${e.columns[0].values.length} נקודות · נשמר ${e.savedAt}`,
