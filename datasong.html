@@ -4,103 +4,121 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DataSong — מוזיקה ממאגרי נתונים</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Assistant:wght@400;600;700&family=Frank+Ruhl+Libre:wght@500;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
 <style>
+/* ==========================================================================
+   03-DESIGN-SYSTEM — טוקנים. שינוי כאן משנה את כל האפליקציה.
+   ========================================================================== */
   :root{
+    /* משטחים ודיו */
     --bg:#0e1418;
     --panel:#151e24;
     --panel2:#1b262d;
     --line:#2a3a43;
     --ink:#e8eef0;
     --dim:#8ba3ad;
-    --gold:#d6a24e;      /* מנגינה */
-    --teal:#4fa8b8;      /* ליווי */
-    --rose:#c76b7a;
-    --accent:#d6a24e;
+
+    /* צבעי השכבות — זהים בגרף, במיקסר ובייצוא */
+    --gold:#d6a24e;      /* שכבה 1 · מנגינה  */
+    --rose:#c76b7a;      /* שכבה 2 · הרמוניה */
+    --teal:#4fa8b8;      /* שכבה 3 · ביס     */
+    --violet:#9b86c4;    /* שכבה 4 · קצב     */
+    --accent:var(--gold);
+    --err:#e0808f;
+
+    /* סולם רווח מודולרי */
+    --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:24px; --s6:32px;
+    --r:6px;
   }
   *{margin:0;padding:0;box-sizing:border-box}
   html,body{height:100%}
   body{
-    background:
-      radial-gradient(140% 90% at 20% -10%, #16232b 0%, var(--bg) 60%);
+    background:radial-gradient(140% 90% at 20% -10%, #16232b 0%, var(--bg) 60%);
+    background-attachment:fixed;
     color:var(--ink);
     font-family:"Assistant","Heebo",system-ui,sans-serif;
     min-height:100vh;padding:clamp(14px,3vw,40px);
     line-height:1.5;
   }
-  .app{max-width:1000px;margin:0 auto}
+  .app{max-width:1080px;margin:0 auto}
 
-  header{margin-bottom:26px}
+  header{margin-bottom:var(--s5)}
   .brand{
     font-family:"Frank Ruhl Libre",serif;font-weight:500;
     font-size:clamp(1.8rem,5vw,2.7rem);color:var(--ink);letter-spacing:-.01em;
   }
   .brand b{color:var(--gold);font-weight:500}
-  .tag{color:var(--dim);margin-top:8px;max-width:60ch;font-size:1rem}
+  .tag{color:var(--dim);margin-top:var(--s2);max-width:62ch;font-size:1rem}
 
-  .grid{display:grid;grid-template-columns:1fr;gap:20px}
-  @media(min-width:760px){.grid{grid-template-columns:1.3fr 1fr}}
+  .grid{display:grid;grid-template-columns:1fr;gap:var(--s5)}
+  @media(min-width:820px){.grid{grid-template-columns:1.35fr 1fr}}
+  /* פריטי grid/flex לא מתכווצים מתחת לרוחב התוכן שלהם אלא אם מאפסים min-width.
+     בלי זה, בורר עם טקסט ארוך מרחיב את הכרטיס וגורם לגלילה אופקית במסך צר. */
+  .grid>*,.layers>*,.globals>*,.advgrid>*{min-width:0}
+  select{max-width:100%;min-width:0}
 
   .card{
     background:var(--panel);border:1px solid var(--line);
-    border-radius:6px;padding:clamp(16px,3vw,24px);
+    border-radius:var(--r);padding:clamp(16px,3vw,24px);
   }
-  .card h2{font-size:1.05rem;font-weight:600;margin-bottom:14px;color:var(--ink)}
-  .card h2 .n{color:var(--dim);font-weight:400;margin-inline-end:6px}
+  .card + .card{margin-top:var(--s5)}
+  .card h2{font-size:1.05rem;font-weight:600;margin-bottom:var(--s4);color:var(--ink)}
+  .card h2 .n{color:var(--dim);font-weight:400;margin-inline-end:var(--s1)}
 
-  /* ויזואליזציה */
+/* ---------- ויזואליזציה ---------- */
   .stage{
-    background:var(--panel2);border:1px solid var(--line);border-radius:6px;
-    padding:10px;margin-bottom:8px;
+    background:var(--panel2);border:1px solid var(--line);border-radius:var(--r);
+    padding:var(--s2);margin-bottom:var(--s2);
   }
-  svg{display:block;width:100%;height:auto}
+  svg#viz{display:block;width:100%;height:auto}
   .now{
-    display:flex;justify-content:space-between;align-items:baseline;
-    font-size:.85rem;color:var(--dim);margin-top:6px;min-height:1.4em;
+    display:flex;justify-content:space-between;align-items:baseline;gap:var(--s3);
+    font-size:.85rem;color:var(--dim);margin-top:var(--s2);min-height:1.4em;
   }
   .now .lbl{color:var(--gold);font-weight:600}
-  .now .val{font-variant-numeric:tabular-nums}
+  .now .val{font-variant-numeric:tabular-nums;white-space:nowrap}
 
-  /* אזור טעינת דאטה */
-  .loader{display:flex;flex-direction:column;gap:12px}
+/* ---------- טעינת דאטה ---------- */
+  .loader{display:flex;flex-direction:column;gap:var(--s3)}
   .drop{
-    border:1.5px dashed var(--line);border-radius:6px;
+    border:1.5px dashed var(--line);border-radius:var(--r);
     padding:18px;text-align:center;color:var(--dim);
     cursor:pointer;transition:border-color .15s,background .15s;font-size:.92rem;
   }
   .drop:hover,.drop.over{border-color:var(--gold);background:rgba(214,162,78,.06);color:var(--ink)}
   textarea{
-    width:100%;min-height:110px;resize:vertical;
-    background:var(--panel2);border:1px solid var(--line);border-radius:6px;
+    width:100%;min-height:96px;resize:vertical;
+    background:var(--panel2);border:1px solid var(--line);border-radius:var(--r);
     color:var(--ink);font-family:ui-monospace,"SF Mono",monospace;font-size:.82rem;
-    padding:10px;line-height:1.5;
+    padding:var(--s2);line-height:1.5;
   }
   textarea::placeholder{color:#5d727b}
-  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .row{display:flex;gap:var(--s2);flex-wrap:wrap;align-items:center}
+
+/* ---------- כפתורים ופקדים ---------- */
   .btn{
     font-family:inherit;font-size:.95rem;font-weight:600;
     background:var(--gold);color:#1a1206;border:none;border-radius:5px;
     padding:11px 22px;cursor:pointer;transition:filter .15s,background .15s;
   }
-  .btn:hover{filter:brightness(1.08)}
-  .btn:disabled{background:#4a5560;color:#8ba3ad;cursor:default;filter:none}
+  .btn:hover:not(:disabled){filter:brightness(1.08)}
+  .btn:disabled{background:#3c464f;color:#7d8f98;cursor:default;filter:none}
   .btn.ghost{background:transparent;border:1px solid var(--line);color:var(--ink)}
-  .btn.ghost:hover{border-color:var(--gold)}
+  .btn.ghost:hover:not(:disabled){border-color:var(--gold)}
+  .btn.ghost:disabled{border-color:var(--line);color:#5d727b;background:transparent}
   .btn.play{background:var(--teal);color:#04181c;font-size:1.05rem;padding:13px 30px}
+  .btn.sm{padding:8px 14px;font-size:.85rem;font-weight:600}
+  :where(button,select,input,textarea,summary):focus-visible{
+    outline:2px solid var(--gold);outline-offset:2px;
+  }
   .status{font-size:.82rem;color:var(--dim);min-height:1.3em}
-  .status.err{color:var(--rose)}
+  .status.err{color:var(--err)}
   .status.ok{color:var(--teal)}
 
-  /* מכוונים */
-  .mixer{display:grid;gap:16px}
-  .voice{
-    background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:14px;
-  }
-  .voice .vh{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
-  .voice .vh .name{font-weight:600;font-size:.95rem}
-  .voice.mel .name{color:var(--gold)}
-  .voice.bass .name{color:var(--teal)}
-  .field{margin-bottom:11px}
+  .field{margin-bottom:var(--s3)}
   .field:last-child{margin-bottom:0}
   .field label{display:block;font-size:.8rem;color:var(--dim);margin-bottom:5px}
   select,input[type=range]{width:100%;font-family:inherit}
@@ -109,48 +127,118 @@
     border:1px solid var(--line);border-radius:5px;font-size:.9rem;
   }
   input[type=range]{accent-color:var(--gold)}
-  .voice.bass input[type=range]{accent-color:var(--teal)}
-  .sw{display:flex;align-items:center;gap:8px;font-size:.85rem;color:var(--dim);cursor:pointer}
-  .sw input{width:16px;height:16px;accent-color:var(--teal)}
-
-  .globals{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:4px}
+  .globals{display:grid;grid-template-columns:1fr;gap:var(--s3);margin-top:var(--s3)}
+  @media(min-width:520px){.globals{grid-template-columns:1fr 1fr 1fr}}
   .globals .field{margin:0}
+  .hint{font-size:.75rem;color:var(--dim);margin-top:4px}
 
-  .foot{margin-top:22px;font-size:.82rem;color:var(--dim);line-height:1.6;
-    border-inline-start:3px solid var(--gold);padding-inline-start:14px;max-width:70ch}
+/* ---------- המיקסר: שכבה = כרטיס מתקפל ---------- */
+  .layers{display:grid;gap:var(--s3);grid-template-columns:1fr}
+  @media(min-width:720px){.layers{grid-template-columns:1fr 1fr}}
+  .voice{
+    background:var(--panel2);border:1px solid var(--line);border-radius:var(--r);
+    border-inline-start:3px solid var(--c);
+  }
+  .voice>summary{
+    list-style:none;cursor:pointer;padding:var(--s3) var(--s4);
+    display:flex;align-items:center;justify-content:space-between;
+    gap:var(--s2);flex-wrap:wrap;
+  }
+  .voice>summary::-webkit-details-marker{display:none}
+  .voice .name{font-weight:600;font-size:.95rem;color:var(--c);flex:none}
+  .voice .meta{font-size:.78rem;color:var(--dim);text-align:start;flex:1 1 90px;min-width:0;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .voice .body{padding:0 var(--s4) var(--s4)}
+  .voice input[type=range]{accent-color:var(--c)}
+  .sw{display:flex;align-items:center;gap:6px;font-size:.8rem;color:var(--dim);cursor:pointer}
+  .sw input{width:15px;height:15px;accent-color:var(--c);flex:none}
+
+  details.adv{margin-top:var(--s4);border-top:1px solid var(--line);padding-top:var(--s3)}
+  details.adv>summary{cursor:pointer;font-size:.85rem;color:var(--dim);font-weight:600}
+  .advgrid{display:grid;gap:var(--s3);margin-top:var(--s3);grid-template-columns:1fr}
+  @media(min-width:620px){.advgrid{grid-template-columns:1fr 1fr 1fr}}
+
+/* ---------- הספרייה: אריח לכל מאגר, לחיצה מנגנת ---------- */
+  .chips{display:grid;gap:var(--s3);grid-template-columns:repeat(auto-fill,minmax(min(210px,100%),1fr))}
+  .chip{
+    position:relative;text-align:start;cursor:pointer;font-family:inherit;
+    background:var(--panel2);border:1px solid var(--line);border-radius:var(--r);
+    padding:var(--s3) var(--s4);color:var(--ink);
+    transition:border-color .15s,background .15s,transform .12s;
+    display:flex;flex-direction:column;gap:var(--s1);
+  }
+  .chip:hover{border-color:var(--gold);background:#20303a}
+  .chip.active{border-color:var(--gold);background:rgba(214,162,78,.09)}
+  .chip.active::before{
+    content:"";position:absolute;inset-inline-start:0;top:12%;bottom:12%;
+    width:3px;background:var(--gold);border-radius:3px;
+  }
+  .chip .ct{font-weight:600;font-size:.92rem;line-height:1.35}
+  .chip .cs{font-size:.75rem;color:var(--dim);line-height:1.45}
+  .chip .cb{
+    align-self:flex-start;font-size:.68rem;letter-spacing:.03em;
+    border:1px solid var(--line);border-radius:99px;padding:1px 8px;color:var(--dim);margin-top:2px;
+  }
+  .chip.mine .cb{color:var(--teal);border-color:#2f5a63}
+  .chip .del{
+    position:absolute;top:6px;inset-inline-end:6px;width:24px;height:24px;
+    border:none;background:transparent;color:var(--dim);cursor:pointer;
+    border-radius:4px;font-size:1rem;line-height:1;
+  }
+  .chip .del:hover{background:rgba(224,128,143,.15);color:var(--err)}
+  .libnote{font-size:.78rem;color:var(--dim);margin-top:var(--s3)}
+
+  .saverow{display:flex;gap:var(--s2);align-items:center}
+  .saverow[hidden]{display:none}
+  .saverow input{
+    flex:1;min-width:0;padding:9px 10px;background:var(--panel2);color:var(--ink);
+    border:1px solid var(--line);border-radius:5px;font-family:inherit;font-size:.9rem;
+  }
+  .saverow input::placeholder{color:#5d727b}
+
+/* ---------- ייצוא ---------- */
+  progress{width:100%;height:5px;margin-top:var(--s2);accent-color:var(--gold)}
+  progress[hidden]{display:none}
+
+  .foot{margin-top:var(--s5);font-size:.82rem;color:var(--dim);line-height:1.7;
+    border-inline-start:3px solid var(--gold);padding-inline-start:var(--s3);max-width:74ch}
   code{background:var(--panel2);padding:1px 6px;border-radius:3px;font-size:.85em;color:var(--gold)}
-  @media(prefers-reduced-motion:reduce){*{transition:none!important}}
+  .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 </head>
 <body>
 <div class="app">
   <header>
     <div class="brand">Data<b>Song</b></div>
-    <p class="tag">טוענים מאגר נתונים — קובץ JSON או הדבקת טבלה — והוא הופך למוזיקה בשתי שכבות. הקוד דואג שזה תמיד יישמע נעים לאוזן.</p>
+    <p class="tag">טוענים מאגר נתונים — JSON, CSV או הדבקת טבלה — והוא הופך למוזיקה בארבע שכבות: מנגינה, הרמוניה, ביס וקצב. הקוד דואג שזה תמיד יישמע נעים לאוזן.</p>
   </header>
 
   <div class="grid">
-    <!-- שמאל: נגן + ויזואליזציה -->
+    <!-- ================= 01 · הנגן ================= -->
     <div class="card">
       <h2><span class="n">01</span>הנגן</h2>
       <div class="stage">
-        <svg id="viz" viewBox="0 0 800 260" preserveAspectRatio="none" aria-hidden="true"></svg>
+        <svg id="viz" viewBox="0 0 800 300" role="img" aria-labelledby="vizDesc"></svg>
+        <span class="sr" id="vizDesc">גרף הנתונים הנטענים. כל שכבה מוזיקלית מצוירת בצבע משלה.</span>
       </div>
       <div class="now">
         <span class="lbl" id="title">— טענו נתונים כדי להתחיל —</span>
         <span class="val" id="readout"></span>
       </div>
-      <div class="row" style="margin-top:14px">
+      <div class="row" style="margin-top:var(--s4)">
         <button class="btn play" id="play" disabled>נגן</button>
+        <button class="btn ghost" id="pause" disabled>השהה</button>
         <button class="btn ghost" id="stop" disabled>עצור</button>
       </div>
       <div class="globals">
         <div class="field">
-          <label>קצב: <span id="tempoV">14</span> שנ׳ למסע</label>
-          <input type="range" id="tempo" min="5" max="40" value="14" step="1">
+          <label for="tempo">אורך המסע: <span id="tempoV">20</span> שנ׳</label>
+          <input type="range" id="tempo" min="5" max="120" value="20" step="1">
+          <div class="hint" id="rateHint"></div>
         </div>
         <div class="field">
-          <label>סולם הרמוני</label>
+          <label for="scale">סולם הרמוני</label>
           <select id="scale">
             <option value="pent">פנטטוני — רך, בלי דיסוננס</option>
             <option value="major">מז׳ורי — בהיר</option>
@@ -159,349 +247,1279 @@
             <option value="chromatic">כרומטי — נאמן לדאטה</option>
           </select>
         </div>
+        <div class="field">
+          <label for="root">טוניקה</label>
+          <select id="root">
+            <option value="0">דו (C)</option><option value="2">רה (D)</option>
+            <option value="4">מי (E)</option><option value="5">פה (F)</option>
+            <option value="7" selected>סול (G)</option><option value="9">לה (A)</option>
+            <option value="11">סי (B)</option>
+          </select>
+        </div>
       </div>
     </div>
 
-    <!-- ימין: טעינת דאטה -->
+    <!-- ================= 02 · הנתונים ================= -->
     <div class="card">
       <h2><span class="n">02</span>הנתונים</h2>
       <div class="loader">
         <label class="drop" id="drop">
-          גררו לכאן קובץ <b>.json</b> או לחצו לבחירה
-          <input type="file" id="file" accept=".json,.csv,.txt" hidden>
+          גררו לכאן קובץ <b>.json</b> / <b>.csv</b> או לחצו לבחירה
+          <input type="file" id="file" accept=".json,.csv,.tsv,.txt" hidden>
         </label>
-        <textarea id="paste" placeholder="…או הדביקו כאן נתונים — עמודת מספרים, שורת מספרים מופרדים בפסיק, או CSV. למשל:&#10;0, 3, 6, 11, 18, 26, 33, 37, 35, 30"></textarea>
+        <textarea id="paste" placeholder="…או הדביקו כאן: עמודת מספרים, שורה מופרדת בפסיקים, או טבלת CSV שלמה עם כותרות. למשל:&#10;עומק,מליחות,טמפרטורה&#10;0,35.1,24.2&#10;10,35.4,23.8"></textarea>
         <div class="row">
           <button class="btn" id="load">טען מההדבקה</button>
-          <button class="btn ghost" id="demo">דוגמה: אשדוד</button>
+        </div>
+
+        <!-- שמירה לספרייה — מופיעה רק אחרי שנטענו נתונים -->
+        <div class="saverow" id="saveRow" hidden>
+          <input type="text" id="saveName" maxlength="60" placeholder="שם לשמירה בספרייה">
+          <button class="btn sm" id="saveLib">שמור בספרייה</button>
+        </div>
+
+        <div class="field" id="labelsField" hidden>
+          <label for="labelCol">עמודת תוויות (טקסט שיוצג תוך כדי נגינה)</label>
+          <select id="labelCol"></select>
         </div>
         <div class="status" id="status">אין נתונים עדיין.</div>
       </div>
     </div>
   </div>
 
-  <!-- מכוונים -->
-  <div class="card" style="margin-top:20px">
-    <h2><span class="n">03</span>המכוונים — צליל לכל שכבה</h2>
-    <div class="mixer" style="grid-template-columns:1fr;">
-      <div style="display:grid;gap:16px;grid-template-columns:1fr;">
-        <div style="display:grid;gap:16px" id="voicesWrap">
-          <div class="voice mel">
-            <div class="vh"><span class="name">שכבה 1 · מנגינה</span></div>
-            <div class="field">
-              <label>כלי / קול</label>
-              <select id="melInst">
-                <option value="piano">פסנתר</option>
-                <option value="harp">נבל</option>
-                <option value="cello">צ׳לו (קשת)</option>
-                <option value="choir">מקהלה — “אהה” (קול אנושי סינתטי)</option>
-                <option value="voxOo">קול — “אוּ” רך</option>
-                <option value="glass">פעמוני זכוכית</option>
-                <option value="marimba">מרימבה</option>
-              </select>
-            </div>
-            <div class="field">
-              <label>עוצמה: <span id="melVolV">0</span> dB</label>
-              <input type="range" id="melVol" min="-24" max="4" value="-3" step="1">
-            </div>
-          </div>
+  <!-- ================= 03 · הספרייה ================= -->
+  <div class="card">
+    <h2><span class="n">03</span>הספרייה — לחיצה מנגנת</h2>
+    <div class="chips" id="library"></div>
+    <p class="libnote" id="libNote"></p>
+  </div>
 
-          <div class="voice bass">
-            <div class="vh">
-              <span class="name">שכבה 2 · ליווי / ביס</span>
-              <label class="sw"><input type="checkbox" id="bassOn" checked> פעיל</label>
-            </div>
-            <div class="field">
-              <label>כלי / קול</label>
-              <select id="bassInst">
-                <option value="pad">כרית מיתרים (Pad) — רקע חמים</option>
-                <option value="cello">צ׳לו נמוך</option>
-                <option value="choir">מקהלה נמוכה</option>
-                <option value="upright">קונטרבס (Pizzicato)</option>
-                <option value="drone">דרון — צליל אחיד מתמשך</option>
-              </select>
-            </div>
-            <div class="field">
-              <label>עוצמה: <span id="bassVolV">-8</span> dB</label>
-              <input type="range" id="bassVol" min="-30" max="0" value="-8" step="1">
-            </div>
-          </div>
+  <!-- ================= 04 · המכוונים ================= -->
+  <div class="card">
+    <h2><span class="n">04</span>המכוונים — שכבה, מקור וצליל</h2>
+    <div class="layers" id="layers"></div>
+
+    <details class="adv">
+      <summary>פקדים מתקדמים</summary>
+      <div class="advgrid">
+        <div class="field">
+          <label for="smooth">החלקת המנגינה: <span id="smoothV">0</span></label>
+          <input type="range" id="smooth" min="0" max="12" value="0" step="1">
+          <div class="hint">מרכך דאטה מחוספס. 0 = נאמן למקור.</div>
+        </div>
+        <div class="field">
+          <label for="legato">אורך צליל: <span id="legatoV">1.6</span>×</label>
+          <input type="range" id="legato" min="0.4" max="3" value="1.6" step="0.1">
+          <div class="hint">מעל 1 — הצלילים נשפכים זה לזה.</div>
+        </div>
+        <div class="field">
+          <label for="thresh">סף חבטה בקצב: <span id="threshV">0.25</span></label>
+          <input type="range" id="thresh" min="0.05" max="0.9" value="0.25" step="0.05">
+          <div class="hint">נמוך = קצב צפוף. גבוה = רק קפיצות חדות.</div>
         </div>
       </div>
+    </details>
+  </div>
+
+  <!-- ================= 05 · ייצוא ================= -->
+  <div class="card">
+    <h2><span class="n">05</span>ייצוא</h2>
+    <div class="row">
+      <button class="btn sm" id="expWav" disabled>הורד WAV</button>
+      <button class="btn sm ghost" id="expPng" disabled>הורד PNG</button>
+      <button class="btn sm ghost" id="expSvg" disabled>הורד SVG</button>
+      <span class="status" id="expStatus" style="flex:1"></span>
     </div>
+    <progress id="expProg" max="100" value="0" hidden></progress>
   </div>
 
   <p class="foot">
-    שתי הערות ישרות: הכלים משתמשים בסינתזה (לא בהקלטות של נגנים אמיתיים), והקולות
-    <code>מקהלה</code> ו<code>קול</code> הם <b>סימולציה של קול אנושי</b> — נעימים, אך לא זמר אמיתי ולא אופרה
-    מוקלטת. פורמט הקובץ: <code>{ "title", "melody":[...], "bass":[...], "labels":[...], "hint" }</code> —
-    רק <code>melody</code> חובה. אפשר גם להדביק סתם עמודת מספרים.
+    הכלים משתמשים ב<b>סינתזה</b> (לא בהקלטות של נגנים אמיתיים), והקולות <code>מקהלה</code>
+    ו<code>קול</code> הם <b>סימולציה של קול אנושי</b> — נעימים, אך לא זמר אמיתי.
+    קלט נתמך: <code>CSV/TSV</code> עם כותרות, <code>{ "title", "melody":[…], "labels":[…] }</code>,
+    או סתם עמודת מספרים. מעל 512 נקודות — הדאטה מדוגם מחדש כדי שיישאר מוזיקלי.
+    <span id="sampleNote"></span>
   </p>
 </div>
 
 <script>
-/* ===================== מודל הדאטה ===================== */
-let DATA = null; // {title, melody:[], bass:[]|null, labels:[]|null, hint}
+"use strict";
+/* ==========================================================================
+   02-CONTENT — ספריית הדוגמאות.
+   כל פריט נושא `source` שאומר מאיפה הנתונים. פריטים המסומנים "המחשה"
+   מחוללים מנוסחה ואינם מתיימרים לתאר מדידה אמיתית של העולם.
+   ========================================================================== */
+const SAMPLES = [
+  {
+    id:'ashdod',
+    title:'אשדוד — פרופיל הגובה מהים אל השפלה',
+    source:'נתוני הדגמה שסופקו עם הפרויקט · מסע ממערב למזרח, כ־8 ק״מ',
+    labels:['חוף','','','','','','','','רכס כורכר','','','','','שקע','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','מזרח'],
+    values:[0,0,1,3,6,11,18,26,33,37,35,30,24,18,14,12,13,15,16,15,14,13,14,16,19,22,24,25,24,23,24,26,29,32,34,35,36,38,41,44,46,47,48,50,53,56,58,60,63,66,68,70,73,76,79,82,85,88,91,95],
+    name:'גובה (מ׳)'
+  },
+  {
+    id:'sine', title:'גל סינוס — המחשה', name:'משרעת',
+    source:'המחשה: מחולל מנוסחה, לא מדידה. מראה איך צורה חלקה נשמעת.',
+    gen:n=>Array.from({length:n},(_,i)=>50+45*Math.sin(i/n*Math.PI*4)), n:96
+  },
+  {
+    id:'growth', title:'צמיחה מעריכית — המחשה', name:'ערך',
+    source:'המחשה: מחולל מנוסחה, לא מדידה. עלייה מתמדת בלי חזרה.',
+    gen:n=>Array.from({length:n},(_,i)=>Math.pow(1.055,i)), n:80
+  },
+  {
+    id:'walk', title:'הילוך אקראי — המחשה', name:'מיקום',
+    source:'המחשה: מחולל מנוסחה עם זרע קבוע. דאטה סוער — שומעים את שכבת הקצב.',
+    gen:n=>{let s=12345,v=50;const seed=()=>((s=(s*1103515245+12345)&0x7fffffff)/0x7fffffff);
+      return Array.from({length:n},()=>{v+=(seed()-.5)*14;return v;});}, n:120
+  }
+];
 
-function parsePasted(text){
-  text = text.trim();
+/* ==========================================================================
+   06-DATA — פענוח קלט, נורמליזציה וסדרות נגזרות.
+   ========================================================================== */
+const MAX_POINTS = 512;
+
+/** DATA = {title, source, columns:[{name,values,numeric}], labels|null, n} */
+let DATA = null;
+let resampled = false;
+
+const num = s => {
+  if (typeof s === 'number') return isFinite(s) ? s : null;
+  if (s == null) return null;
+  let t = String(s).trim().replace(/[\s ‏‎]/g,'').replace(/[%₪$€]/g,'');
+  if (/^-?\d{1,3}(,\d{3})+(\.\d+)?$/.test(t)) t = t.replace(/,/g,'');   // 1,234,567
+  if (t === '' || t === '-' || /^(na|n\/a|null|nan|—|–)$/i.test(t)) return null;
+  const v = parseFloat(t);
+  return isFinite(v) ? v : null;
+};
+
+function splitLine(line, d){
+  const out=[]; let cur='', q=false;
+  for(let i=0;i<line.length;i++){
+    const c=line[i];
+    if(q){
+      if(c==='"'){ if(line[i+1]==='"'){cur+='"';i++;} else q=false; }
+      else cur+=c;
+    }
+    else if(c==='"') q=true;
+    else if(c===d){ out.push(cur); cur=''; }
+    else cur+=c;
+  }
+  out.push(cur);
+  return out.map(s=>s.trim());
+}
+
+function pickDelim(line){
+  let best=',', bestN=-1;
+  for(const d of [',',';','\t','|']){
+    const n = splitLine(line,d).length;
+    if(n>bestN){bestN=n;best=d;}
+  }
+  return bestN>1 ? best : ',';
+}
+
+/** CSV/TSV → {columns, headerUsed} */
+function parseTable(text){
+  const lines = text.replace(/^﻿/,'').split(/\r\n|\n|\r/).filter(l=>l.trim()!=='');
+  if(!lines.length) return null;
+  const d = pickDelim(lines[0]);
+  let rows = lines.map(l=>splitLine(l,d));
+
+  // שורה אחת רחבה של מספרים ("0, 3, 6, 11") היא סדרה, לא טבלה — מסובבים אותה.
+  if(rows.length===1 && rows[0].length>1 && rows[0].every(c=>num(c)!=null))
+    rows = rows[0].map(c=>[c]);
+
+  const width = Math.max(...rows.map(r=>r.length));
+  if(width < 1) return null;
+
+  // כותרת? השורה הראשונה לא-מספרית בעוד שהשנייה כן.
+  const numCount = r => r.reduce((a,c)=>a+(num(c)!=null?1:0),0);
+  const hasHeader = rows.length>1 && numCount(rows[0]) < numCount(rows[1]) && numCount(rows[0]) < width;
+  const header = hasHeader ? rows[0] : null;
+  const body = hasHeader ? rows.slice(1) : rows;
+  if(!body.length) return null;
+
+  const columns=[];
+  for(let c=0;c<width;c++){
+    const raw = body.map(r=>r[c] ?? '');
+    const parsed = raw.map(num);
+    const good = parsed.filter(v=>v!=null).length;
+    const numeric = good >= Math.max(2, body.length*0.6);
+    columns.push({
+      name: (header && header[c]) ? header[c] : (numeric ? `עמודה ${c+1}` : `טקסט ${c+1}`),
+      values: numeric ? fillGaps(parsed) : raw,
+      numeric
+    });
+  }
+  return columns.some(c=>c.numeric) ? {columns, headerUsed:hasHeader} : null;
+}
+
+/** חורים בעמודה מספרית — נסגרים בערך האחרון התקף. */
+function fillGaps(arr){
+  const out=arr.slice();
+  let first = out.find(v=>v!=null);
+  if(first==null) first=0;
+  let last=first;
+  for(let i=0;i<out.length;i++){
+    if(out[i]==null) out[i]=last; else last=out[i];
+  }
+  return out;
+}
+
+/** מקבל כל קלט — JSON, CSV, עמודת מספרים — ומחזיר את מודל DATA. */
+function parseInput(text, fallbackTitle){
+  text = String(text||'').trim();
   if(!text) return null;
-  // ניסיון 1: JSON
+
   if(text[0]==='{' || text[0]==='['){
     try{
       const j = JSON.parse(text);
-      if(Array.isArray(j)) return {title:"נתונים מודבקים", melody:j.map(Number).filter(v=>!isNaN(v))};
-      if(j.melody) return normalize(j);
-    }catch(e){/* ננסה כמספרים */}
+      if(Array.isArray(j)){
+        const v = j.map(num).filter(x=>x!=null);
+        if(v.length>1) return finalize({title:fallbackTitle||'נתונים מודבקים',
+          columns:[{name:'ערך', values:v, numeric:true}]});
+      } else if(j && typeof j==='object'){
+        return fromJsonObject(j, fallbackTitle);
+      }
+    }catch(e){ /* לא JSON תקין — ננסה כטבלה */ }
   }
-  // ניסיון 2: מספרים מופרדים בפסיק/רווח/שורות (לוקח עמודה ראשונה מספרית)
-  const nums = [];
-  text.split(/[\n,;\t]+/).forEach(tok=>{
-    const v = parseFloat(tok);
-    if(!isNaN(v)) nums.push(v);
+
+  const t = parseTable(text);
+  if(t) return finalize({
+    title: fallbackTitle || 'נתונים מודבקים',
+    source: t.headerUsed ? 'טבלה עם שורת כותרת' : 'טבלה ללא כותרת',
+    columns: t.columns
   });
-  if(nums.length>1) return {title:"נתונים מודבקים", melody:nums};
   return null;
 }
 
-function normalize(j){
-  return {
-    title: j.title || "מאגר נתונים",
-    melody: (j.melody||[]).map(Number).filter(v=>!isNaN(v)),
-    bass: Array.isArray(j.bass) ? j.bass.map(Number) : null,
-    labels: Array.isArray(j.labels) ? j.labels : null,
-    hint: j.hint || ""
+/** הפורמט המקורי {title, melody, bass, labels, hint} — נשמר לתאימות לאחור. */
+function fromJsonObject(j, fallbackTitle){
+  const columns=[];
+  const add=(name,arr)=>{
+    const v=(arr||[]).map(num);
+    if(v.filter(x=>x!=null).length>1) columns.push({name, values:fillGaps(v), numeric:true});
   };
-}
-
-function setData(d){
-  if(!d || !d.melody || d.melody.length<2){
-    return setStatus("לא נמצאו מספיק מספרים בדאטה.", "err");
+  add('מנגינה', j.melody);
+  add('ליווי', j.bass);
+  for(const [k,v] of Object.entries(j)){
+    if(['title','melody','bass','labels','hint','source','name'].includes(k)) continue;
+    if(Array.isArray(v)) add(k, v);
   }
-  d = normalize(d);
-  // אם אין ביס — נגזור אותו: החלקה + הורדה
-  if(!d.bass){
-    d.bass = deriveBass(d.melody);
-  }
-  DATA = d;
-  document.getElementById('title').textContent = d.title;
-  drawViz();
-  play.disabled = false;
-  setStatus(`נטענו ${d.melody.length} נקודות. אפשר לנגן.`, "ok");
-}
-
-function deriveBass(mel){
-  // ממוצע נע איטי — נותן קו ליווי רך שעוקב אחרי המגמה
-  const w=Math.max(2,Math.round(mel.length/12));
-  return mel.map((_,i)=>{
-    let s=0,c=0;
-    for(let k=-w;k<=w;k++){const j=i+k;if(j>=0&&j<mel.length){s+=mel[j];c++;}}
-    return s/c;
+  if(!columns.length) return null;
+  const labels = Array.isArray(j.labels) ? j.labels.map(x=>x==null?'':String(x)) : null;
+  if(labels) columns.push({name:'תוויות', values:labels, numeric:false});
+  return finalize({
+    title: j.title || fallbackTitle || 'מאגר נתונים',
+    source: j.source || j.hint || '',
+    columns, preferLabels: labels ? columns.length-1 : -1
   });
 }
 
-/* ===================== ויזואליזציה ===================== */
-const svg=document.getElementById('viz');
-const VW=800,VH=260,P=8;
-function draw(series,color,opacity,fillOp){
-  const min=Math.min(...series),max=Math.max(...series);
-  const rng=(max-min)||1;
-  const x=i=>P+(VW-2*P)*i/(series.length-1);
-  const y=v=>VH-P-(VH-2*P)*(v-min)/rng;
-  let dl=`M ${x(0)} ${y(series[0])} `;
-  series.forEach((v,i)=>dl+=`L ${x(i)} ${y(v)} `);
-  if(fillOp){
-    const f=document.createElementNS(svg.namespaceURI,'path');
-    f.setAttribute('d',dl+`L ${x(series.length-1)} ${VH-P} L ${x(0)} ${VH-P} Z`);
-    f.setAttribute('fill',color);f.setAttribute('fill-opacity',fillOp);svg.appendChild(f);
+function resample(arr, m, numeric){
+  const out=[], L=arr.length;
+  for(let k=0;k<m;k++){
+    const a=Math.floor(k*L/m), b=Math.max(a+1, Math.floor((k+1)*L/m));
+    if(!numeric){ out.push(arr[a]); continue; }
+    let s=0,c=0;
+    for(let j=a;j<b && j<L;j++){ if(arr[j]!=null){s+=arr[j];c++;} }
+    out.push(c ? s/c : 0);
   }
-  const p=document.createElementNS(svg.namespaceURI,'path');
-  p.setAttribute('d',dl);p.setAttribute('fill','none');
-  p.setAttribute('stroke',color);p.setAttribute('stroke-width','2');
-  p.setAttribute('stroke-opacity',opacity);svg.appendChild(p);
-  return {x,y};
+  return out;
 }
-let melXY=null;
-function drawViz(){
-  svg.innerHTML='';
-  if(!DATA) return;
-  if(document.getElementById('bassOn').checked && DATA.bass)
-    draw(DATA.bass,'#4fa8b8',0.55,0.12);
-  melXY=draw(DATA.melody,'#d6a24e',1,0.10);
-  // סמן
-  cur=document.createElementNS(svg.namespaceURI,'circle');
-  cur.setAttribute('r','6');cur.setAttribute('fill','#d6a24e');
-  cur.setAttribute('opacity','0');svg.appendChild(cur);
-}
-let cur=null;
 
-/* ===================== סולמות + מיפוי ===================== */
-const SCALES={
+function finalize(d){
+  let n = Math.max(...d.columns.map(c=>c.values.length));
+  d.columns.forEach(c=>{
+    while(c.values.length<n) c.values.push(c.numeric ? (c.values[c.values.length-1]??0) : '');
+  });
+  resampled = false;
+  if(n > MAX_POINTS){
+    d.columns.forEach(c=>{ c.values = resample(c.values, MAX_POINTS, c.numeric); });
+    n = MAX_POINTS; resampled = true;
+  }
+  d.n = n;
+  d.source = d.source || '';
+  const li = d.preferLabels >= 0 ? d.preferLabels : d.columns.findIndex(c=>!c.numeric);
+  d.labelCol = li;
+  d.labels = li >= 0 ? d.columns[li].values.map(String) : null;
+  delete d.preferLabels;
+  return d;
+}
+
+/* ---------- סדרות נגזרות ---------- */
+function smoothSeries(arr, w){
+  if(w<1) return arr.slice();
+  return arr.map((_,i)=>{
+    let s=0,c=0;
+    for(let k=-w;k<=w;k++){ const j=i+k; if(j>=0&&j<arr.length){s+=arr[j];c++;} }
+    return s/c;
+  });
+}
+/** ממוצע נע איטי — קו הליווי הרך שעוקב אחרי המגמה. */
+function deriveSmooth(arr){ return smoothSeries(arr, Math.max(2, Math.round(arr.length/12))); }
+
+const percentile = (a,p) => {
+  const s = a.filter(v=>v>0).sort((x,y)=>x-y);
+  return s.length ? s[Math.min(s.length-1, Math.floor(p*s.length))] : 0;
+};
+
+/**
+ * עוצמת השינוי, מנורמלת 0..1.
+ * הנרמול לפי אחוזון 90 ולא לפי המקסימום — חריג בודד לא מוחק את כל השאר.
+ */
+function deriveDelta(arr){
+  const d = arr.map((v,i)=> i===0 ? 0 : Math.abs(v-arr[i-1]));
+  const ref = percentile(d, 0.90) || Math.max(...d) || 1;
+  return d.map(v=>Math.min(1, v/ref));
+}
+
+/** ממיר מפרט מקור ("col:2" / "auto:smooth" / "auto:delta" / "off") לסדרת מספרים. */
+function seriesFor(spec, smoothW){
+  if(!DATA || spec==='off') return null;
+  const numericIdx = DATA.columns.map((c,i)=>c.numeric?i:-1).filter(i=>i>=0);
+  if(!numericIdx.length) return null;
+  const base = smoothSeries(DATA.columns[numericIdx[0]].values, smoothW||0);
+  if(spec==='auto:smooth') return deriveSmooth(base);
+  if(spec==='auto:delta')  return deriveDelta(base);
+  if(spec && spec.startsWith('col:')){
+    const i = +spec.slice(4);
+    const c = DATA.columns[i];
+    if(c && c.numeric) return smoothSeries(c.values, smoothW||0);
+  }
+  return base;
+}
+const normOf = arr => {
+  const mn=Math.min(...arr), mx=Math.max(...arr), r=(mx-mn)||1;
+  return arr.map(v=>(v-mn)/r);
+};
+
+/* ==========================================================================
+   05-LOGIC · A — תורת הצליל: סולמות ומיפוי דרגות.
+   ========================================================================== */
+const SCALES = {
   pent:[0,2,4,7,9], major:[0,2,4,5,7,9,11], minor:[0,2,3,5,7,8,10],
   dorian:[0,2,3,5,7,9,10], chromatic:[0,1,2,3,4,5,6,7,8,9,10,11]
 };
-function quantize(norm,name,baseMidi,octaves){
-  const scale=SCALES[name],per=scale.length;
-  const steps=Math.round(norm*(per*octaves));
-  const oct=Math.floor(steps/per), deg=steps%per;
-  return baseMidi+oct*12+scale[deg];
+const mtof = m => 440 * Math.pow(2,(m-69)/12);
+
+/** דרגה בסולם (יכולה לחרוג מהאוקטבה) → תו MIDI. */
+function degToMidi(scale, base, steps){
+  const per = scale.length;
+  const oct = Math.floor(steps/per);
+  const deg = ((steps % per) + per) % per;
+  return base + oct*12 + scale[deg];
 }
-const mtof=m=>440*Math.pow(2,(m-69)/12);
+const normToSteps = (norm, scale, octaves) =>
+  Math.round(Math.max(0,Math.min(1,norm)) * (scale.length*octaves));
 
-/* ===================== בניית כלים ===================== */
-function buildInstrument(kind){
-  let node, vol=new Tone.Volume(0);
-  const reverb=new Tone.Reverb({decay:2.8,wet:0.3});
-  switch(kind){
-    case 'piano':
-      node=new Tone.PolySynth(Tone.Synth,{oscillator:{type:'triangle'},
-        envelope:{attack:0.005,decay:0.4,sustain:0.1,release:1.2}}); break;
-    case 'harp':
-      node=new Tone.PolySynth(Tone.Synth,{oscillator:{type:'sine'},
-        envelope:{attack:0.005,decay:1.0,sustain:0.0,release:1.5}}); break;
-    case 'cello':
-      node=new Tone.Synth({oscillator:{type:'sawtooth'},
-        envelope:{attack:0.25,decay:0.2,sustain:0.85,release:0.6}});
-      node.chain(new Tone.Filter(1600,'lowpass'),reverb,vol,Tone.Destination); return {node,vol,mono:true};
-    case 'choir':
-      node=new Tone.PolySynth(Tone.Synth,{oscillator:{type:'sine'},
-        envelope:{attack:0.4,decay:0.3,sustain:0.9,release:1.4}});
-      node.chain(new Tone.Chorus(3,2.5,0.4).start(),reverb,vol,Tone.Destination); return {node,vol};
-    case 'voxOo':
-      node=new Tone.PolySynth(Tone.Synth,{oscillator:{type:'sine4'},
-        envelope:{attack:0.3,decay:0.2,sustain:0.85,release:1.2}});
-      node.chain(new Tone.Filter(900,'lowpass'),reverb,vol,Tone.Destination); return {node,vol};
-    case 'glass':
-      node=new Tone.PolySynth(Tone.FMSynth,{harmonicity:3,modulationIndex:6,
-        envelope:{attack:0.005,decay:1.4,sustain:0,release:1.6}}); break;
-    case 'marimba':
-      node=new Tone.PolySynth(Tone.Synth,{oscillator:{type:'sine'},
-        envelope:{attack:0.003,decay:0.5,sustain:0,release:0.4}}); break;
-    /* ---- ביס ---- */
-    case 'pad':
-      node=new Tone.PolySynth(Tone.Synth,{oscillator:{type:'sawtooth'},
-        envelope:{attack:0.8,decay:0.4,sustain:0.9,release:2.0}});
-      node.chain(new Tone.Filter(700,'lowpass'),reverb,vol,Tone.Destination); return {node,vol};
-    case 'upright':
-      node=new Tone.PolySynth(Tone.Synth,{oscillator:{type:'triangle'},
-        envelope:{attack:0.005,decay:0.5,sustain:0,release:0.5}}); break;
-    case 'drone':
-      node=new Tone.Synth({oscillator:{type:'sine'},
-        envelope:{attack:1.2,decay:0,sustain:1,release:2}});
-      node.chain(reverb,vol,Tone.Destination); return {node,vol,mono:true,drone:true};
-  }
-  node.chain(reverb,vol,Tone.Destination);
-  return {node,vol};
-}
+/* ==========================================================================
+   05-LOGIC · B — buildScore: פונקציה טהורה. נתונים + הגדרות → תווים.
+   בלי Tone, בלי DOM. זו הנקודה שמאפשרת גם נגינה חיה וגם רינדור לקובץ.
+   ========================================================================== */
+function buildScore(S){
+  if(!DATA) return null;
+  const n = DATA.n, scale = SCALES[S.scale], step = S.duration/n;
+  const events = [];
+  const series = {};
+  const push = e => events.push(e);
 
-/* ===================== נגינה ===================== */
-let timer=null, running=false, melI=null, bassI=null;
-const play=document.getElementById('play'), stop=document.getElementById('stop');
-
-function stopAll(){
-  if(timer){clearInterval(timer);timer=null;}
-  [melI,bassI].forEach(inst=>{ if(inst){try{
-    if(inst.mono){inst.node.triggerRelease?.();} else {inst.node.releaseAll?.();}
-    inst.node.dispose(); inst.vol.dispose();
-  }catch(e){}}});
-  melI=bassI=null; running=false;
-  play.disabled=!DATA; stop.disabled=true;
-  play.textContent='נגן';
-  if(cur) cur.setAttribute('opacity','0');
-  document.getElementById('readout').textContent='';
-}
-
-async function start(){
-  if(running||!DATA) return;
-  await Tone.start();
-  running=true; play.disabled=true; stop.disabled=false; play.textContent='מנגן…';
-
-  const dur=+document.getElementById('tempo').value;
-  const scale=document.getElementById('scale').value;
-  const n=DATA.melody.length;
-  const stepMs=(dur*1000)/n;
-
-  melI=buildInstrument(document.getElementById('melInst').value);
-  melI.vol.volume.value=+document.getElementById('melVol').value;
-  const useBass=document.getElementById('bassOn').checked && DATA.bass;
-  if(useBass){
-    bassI=buildInstrument(document.getElementById('bassInst').value);
-    bassI.vol.volume.value=+document.getElementById('bassVol').value;
+  /* ---- שכבה 1 · מנגינה ---- */
+  const melRaw = seriesFor(S.mel.src, S.smooth);
+  if(S.mel.on && melRaw){
+    series.mel = melRaw;
+    const nm = normOf(melRaw);
+    for(let i=0;i<n;i++){
+      push({t:i*step, layer:'mel', i,
+        midi:[degToMidi(scale, 52+S.root, normToSteps(nm[i], scale, 2))],
+        dur:step*S.legato, vel:0.55+0.35*nm[i]});
+    }
   }
 
-  const mMin=Math.min(...DATA.melody),mMax=Math.max(...DATA.melody),mR=(mMax-mMin)||1;
-  const bMin=DATA.bass?Math.min(...DATA.bass):0,bMax=DATA.bass?Math.max(...DATA.bass):1,bR=(bMax-bMin)||1;
-
-  let lastBassNote=null;
-  if(bassI&&bassI.drone){ // דרון: צליל פתיחה אחד מתמשך
-    bassI.node.triggerAttack(mtof(quantize(0.2,scale,36,1)));
+  /* ---- שכבה 2 · הרמוניה: טריאדה מהסולם, לא עוד קו יחיד ---- */
+  const harRaw = seriesFor(S.har.src, S.smooth);
+  if(S.har.on && harRaw){
+    series.har = harRaw;
+    const nh = normOf(deriveSmooth(harRaw));
+    const every = Math.max(2, Math.round(n/16));
+    for(let i=0;i<n;i+=every){
+      const s0 = normToSteps(nh[i], scale, 1.5);
+      push({t:i*step, layer:'har',
+        midi:[s0, s0+2, s0+4].map(s=>degToMidi(scale, 45+S.root, s)),
+        dur:step*every*1.5, vel:0.4});
+    }
   }
 
-  let i=0;
-  timer=setInterval(()=>{
-    if(i>=n){ finish(); return; }
-    const v=DATA.melody[i], norm=(v-mMin)/mR;
-    const midi=quantize(norm,scale,52,2);
-    if(melI.mono){ melI.node.frequency.rampTo(mtof(midi),stepMs/1000*0.9); if(i===0)melI.node.triggerAttack(mtof(midi)); }
-    else melI.node.triggerAttackRelease(mtof(midi), stepMs/1000*1.6);
-
-    if(bassI && !bassI.drone){
-      const bv=DATA.bass[i], bnorm=(bv-bMin)/bR;
-      const bmidi=quantize(bnorm,scale,36,1);
-      // הביס מתנגן בקצב איטי יותר — פעם ב-2 צעדים, למניעת עומס
-      if(i%2===0 && bmidi!==lastBassNote){
-        if(bassI.mono){bassI.node.frequency.rampTo(mtof(bmidi),0.3); if(i===0)bassI.node.triggerAttack(mtof(bmidi));}
-        else bassI.node.triggerAttackRelease(mtof(bmidi), stepMs/1000*3.2);
-        lastBassNote=bmidi;
+  /* ---- שכבה 3 · ביס ---- */
+  const basRaw = seriesFor(S.bas.src, S.smooth);
+  if(S.bas.on && basRaw){
+    series.bas = basRaw;
+    const nb = normOf(deriveSmooth(basRaw));
+    if(S.bas.inst === 'drone'){
+      // דרון: תו יסוד אחד לכל אורך היצירה.
+      const med = nb.slice().sort((a,b)=>a-b)[Math.floor(n/2)];
+      push({t:0, layer:'bas', midi:[degToMidi(scale, 33+S.root, normToSteps(med, scale, 1))],
+        dur:S.duration, vel:0.5});
+    } else {
+      const every = Math.max(1, Math.round(n/32));
+      for(let i=0;i<n;i+=every){
+        push({t:i*step, layer:'bas',
+          midi:[degToMidi(scale, 33+S.root, normToSteps(nb[i], scale, 1))],
+          dur:step*every*1.8, vel:0.6});
       }
     }
-    if(cur&&melXY){cur.setAttribute('opacity','1');cur.setAttribute('cx',melXY.x(i));cur.setAttribute('cy',melXY.y(v));}
-    const lbl=(DATA.labels&&DATA.labels[i])?` · ${DATA.labels[i]}`:'';
-    document.getElementById('readout').textContent=`${Math.round(v*10)/10}${lbl} · ${Math.round(100*i/(n-1))}%`;
-    i++;
-  }, stepMs);
+  }
+
+  /* ---- שכבה 4 · קצב: נקודות המפנה של הדאטה הן הגרוב ----
+     חבטה נורית רק במקסימום מקומי של השינוי — כלומר בנקודת מפנה — ולא בכל
+     צעד שחוצה סף. ההבדל מהותי: לגל חלק יש נגזרת גדולה אך חלקה, ובלי תנאי
+     המקסימום המקומי הוא היה מקבל חבטה כמעט בכל צעד ונשמע צפוף יותר מדאטה
+     סוער באמת. עם התנאי — חלק נשאר דליל, סוער נעשה צפוף.                */
+  const perRaw = seriesFor(S.per.src, S.smooth);
+  const hits = [];
+  if(S.per.on && perRaw){
+    const d = deriveDelta(perRaw);
+    series.per = d;
+    let lastHit = -99;
+    for(let i=1;i<n;i++){
+      if(d[i] < S.thresh) continue;
+      if(d[i] < (d[i-1]||0) || d[i] < (d[i+1] ?? 0)) continue;   // לא נקודת מפנה
+      if(i - lastHit < 2) continue;                              // זמן התאוששות
+      lastHit = i;
+      const rel = (d[i]-S.thresh)/((1-S.thresh) || 1);
+      const strong = rel > 0.45;
+      push({t:i*step, layer:'per', i, drum:strong?'low':'high',
+        dur:strong?0.28:0.06, vel:0.35+0.55*Math.min(1,rel)});
+      hits.push(i);
+    }
+  }
+
+  events.sort((a,b)=>a.t-b.t);
+  const tail = 2.6;
+  return {events, series, hits, n, step, duration:S.duration, total:S.duration+tail};
 }
-function finish(){
-  clearInterval(timer);timer=null;
-  if(melI&&melI.mono)melI.node.triggerRelease?.();
-  if(bassI&&(bassI.mono||bassI.drone))bassI.node.triggerRelease?.();
-  setTimeout(()=>stopAll(),1600);
-  play.textContent='נגן שוב';
+
+/* ==========================================================================
+   05-LOGIC · C — מנוע האודיו. הגרף נבנה פעם אחת ומתקיים בין נגינות.
+   [כלי → Volume → Panner] ─┬→ Limiter → יציאה  (יבש)
+                            └→ send   → Reverb ┘ (רטוב)
+   ========================================================================== */
+const LAYERS = [
+  {k:'mel', label:'שכבה 1 · מנגינה', color:'--gold',   vol:-3,  pan:0,     rev:0.30},
+  {k:'har', label:'שכבה 2 · הרמוניה', color:'--rose',  vol:-13, pan:-0.30, rev:0.40},
+  {k:'bas', label:'שכבה 3 · ביס',     color:'--teal',  vol:-8,  pan:0.10,  rev:0.22},
+  {k:'per', label:'שכבה 4 · קצב',     color:'--violet',vol:-11, pan:0.28,  rev:0.14}
+];
+
+const INSTRUMENTS = {
+  mel:[['piano','פסנתר'],['harp','נבל'],['cello','צ׳לו (קשת)'],['choir','מקהלה — “אהה”'],
+       ['voxOo','קול — “אוּ” רך'],['glass','פעמוני זכוכית'],['marimba','מרימבה']],
+  har:[['pad','כרית מיתרים (Pad)'],['choir','מקהלה'],['glass','פעמוני זכוכית'],
+       ['harp','נבל'],['cello','מיתרים (קשת)']],
+  bas:[['pad','כרית מיתרים (Pad)'],['cello','צ׳לו נמוך'],['choir','מקהלה נמוכה'],
+       ['upright','קונטרבס (Pizzicato)'],['drone','דרון — צליל אחיד מתמשך']],
+  per:[['kit','ערכה — בעיטה + הַיהֶט'],['taiko','טאיקו — תוף עמוק'],
+       ['shaker','שייקר — רעש רך'],['wood','וודבלוק — נקישה יבשה']]
+};
+
+/** בונה נוד כלי בהקשר Tone הנוכחי (חי או offline). מחזיר {node, chain[]}. */
+function makeInst(kind){
+  const poly = (cls, opts) => { const p = new Tone.PolySynth(cls, opts); p.maxPolyphony = 24; return p; };
+  switch(kind){
+    case 'piano':   return {node:poly(Tone.Synth,{oscillator:{type:'triangle'},envelope:{attack:.005,decay:.4,sustain:.1,release:1.2}}),chain:[]};
+    case 'harp':    return {node:poly(Tone.Synth,{oscillator:{type:'sine'},envelope:{attack:.005,decay:1.0,sustain:0,release:1.5}}),chain:[]};
+    case 'marimba': return {node:poly(Tone.Synth,{oscillator:{type:'sine'},envelope:{attack:.003,decay:.5,sustain:0,release:.4}}),chain:[]};
+    case 'glass':   return {node:poly(Tone.FMSynth,{harmonicity:3,modulationIndex:6,envelope:{attack:.005,decay:1.4,sustain:0,release:1.6}}),chain:[]};
+    case 'cello':   return {node:poly(Tone.Synth,{oscillator:{type:'sawtooth'},envelope:{attack:.25,decay:.2,sustain:.85,release:.6}}),
+                            chain:[new Tone.Filter(1600,'lowpass')]};
+    case 'choir':   return {node:poly(Tone.Synth,{oscillator:{type:'sine'},envelope:{attack:.4,decay:.3,sustain:.9,release:1.4}}),
+                            chain:[new Tone.Chorus(3,2.5,.4).start()]};
+    case 'voxOo':   return {node:poly(Tone.Synth,{oscillator:{type:'sine4'},envelope:{attack:.3,decay:.2,sustain:.85,release:1.2}}),
+                            chain:[new Tone.Filter(900,'lowpass')]};
+    case 'pad':     return {node:poly(Tone.Synth,{oscillator:{type:'sawtooth'},envelope:{attack:.8,decay:.4,sustain:.9,release:2.0}}),
+                            chain:[new Tone.Filter(700,'lowpass')]};
+    case 'upright': return {node:poly(Tone.Synth,{oscillator:{type:'triangle'},envelope:{attack:.005,decay:.5,sustain:0,release:.5}}),chain:[]};
+    case 'drone':   return {node:poly(Tone.Synth,{oscillator:{type:'sine'},envelope:{attack:1.2,decay:.1,sustain:1,release:2}}),chain:[]};
+    default:        return {node:poly(Tone.Synth,{oscillator:{type:'triangle'}}),chain:[]};
+  }
 }
 
-/* ===================== חיווט UI ===================== */
-function setStatus(msg,cls){const s=document.getElementById('status');s.textContent=msg;s.className='status'+(cls?' '+cls:'');}
-play.addEventListener('click',start);
-stop.addEventListener('click',stopAll);
+/** ערכת הקשה. `hit(time, vel, 'low'|'high')` — אין לה גובה צליל. */
+function makePerc(kind){
+  const parts = [];
+  const mk = {
+    kit: () => ({
+      low:  new Tone.MembraneSynth({pitchDecay:.05,octaves:5,envelope:{attack:.001,decay:.4,sustain:0}}),
+      high: new Tone.MetalSynth({frequency:300,envelope:{attack:.001,decay:.07,release:.01},
+              harmonicity:5.1,modulationIndex:32,resonance:4000,octaves:1.5,volume:-16})
+    }),
+    taiko: () => {
+      const d = new Tone.MembraneSynth({pitchDecay:.12,octaves:3,envelope:{attack:.001,decay:.7,sustain:0}});
+      return {low:d, high:d};
+    },
+    shaker: () => {
+      const s = new Tone.NoiseSynth({noise:{type:'pink'},envelope:{attack:.001,decay:.09,sustain:0}});
+      return {low:s, high:s};
+    },
+    wood: () => {
+      const w = new Tone.MetalSynth({frequency:520,envelope:{attack:.001,decay:.05,release:.01},
+                  harmonicity:8,modulationIndex:20,resonance:2600,octaves:1,volume:-14});
+      return {low:w, high:w};
+    }
+  }[kind] || mk_kit_fallback;
+  function mk_kit_fallback(){ return {low:new Tone.MembraneSynth(), high:new Tone.MembraneSynth()}; }
 
-document.getElementById('tempo').addEventListener('input',e=>document.getElementById('tempoV').textContent=e.target.value);
-document.getElementById('melVol').addEventListener('input',e=>{document.getElementById('melVolV').textContent=e.target.value;if(melI)melI.vol.volume.value=+e.target.value;});
-document.getElementById('bassVol').addEventListener('input',e=>{document.getElementById('bassVolV').textContent=e.target.value;if(bassI)bassI.vol.volume.value=+e.target.value;});
-document.getElementById('bassOn').addEventListener('change',drawViz);
-document.getElementById('scale').addEventListener('change',()=>{});
+  const g = mk();
+  parts.push(g.low); if(g.high !== g.low) parts.push(g.high);
+  return {
+    nodes: parts,
+    hit(time, vel, which){
+      const s = which==='low' ? g.low : g.high;
+      // MembraneSynth דורש תו; MetalSynth ו-NoiseSynth לא.
+      if(s instanceof Tone.MembraneSynth) s.triggerAttackRelease(which==='low'?'C1':'G1', .3, time, vel);
+      else s.triggerAttackRelease(.06, time, vel);
+    },
+    connect(dest){ parts.forEach(p=>p.connect(dest)); },
+    dispose(){ parts.forEach(p=>{try{p.dispose();}catch(e){}}); }
+  };
+}
 
-// טעינת קובץ
-const fileInput=document.getElementById('file'), drop=document.getElementById('drop');
+/**
+ * בונה את כל גרף האודיו בהקשר Tone הנוכחי.
+ * פועל זהה חי ו-offline, ולכן הייצוא נשמע כמו הנגינה.
+ */
+async function buildGraph(S){
+  const master = new Tone.Limiter(-1).toDestination();
+  const reverb = new Tone.Reverb({decay:3.2, wet:1, preDelay:0.02}).connect(master);
+  await reverb.generate();                       // חובה — אחרת הצלילים הראשונים יוצאים יבשים
+
+  const ch = {};
+  for(const L of LAYERS){
+    const vol  = new Tone.Volume(S[L.k].vol);
+    const pan  = new Tone.Panner(L.pan);
+    const send = new Tone.Gain(L.rev);
+    vol.connect(pan);
+    pan.connect(master);                         // יבש
+    pan.connect(send); send.connect(reverb);     // רטוב
+    let inst = null, perc = null;
+    if(L.k === 'per'){
+      perc = makePerc(S.per.inst);
+      perc.connect(vol);
+    } else {
+      const made = makeInst(S[L.k].inst);
+      const nodes = [made.node, ...made.chain, vol];
+      for(let i=0;i<nodes.length-1;i++) nodes[i].connect(nodes[i+1]);
+      inst = made;
+    }
+    ch[L.k] = {vol, pan, send, inst, perc};
+  }
+  return {
+    master, reverb, ch,
+    fire(ev, time){
+      const c = ch[ev.layer];
+      if(!c) return;
+      if(ev.layer === 'per'){ c.perc && c.perc.hit(time, ev.vel, ev.drum); return; }
+      if(!c.inst) return;
+      c.inst.node.triggerAttackRelease(ev.midi.map(mtof), ev.dur, time, ev.vel);
+    },
+    release(){
+      for(const k in ch){
+        const c = ch[k];
+        if(c.inst && c.inst.node.releaseAll) { try{c.inst.node.releaseAll();}catch(e){} }
+      }
+    },
+    dispose(){
+      for(const k in ch){
+        const c = ch[k];
+        if(c.inst){ try{c.inst.node.dispose();}catch(e){} c.inst.chain.forEach(x=>{try{x.dispose();}catch(e){}}); }
+        if(c.perc) c.perc.dispose();
+        [c.vol,c.pan,c.send].forEach(x=>{try{x.dispose();}catch(e){}});
+      }
+      try{reverb.dispose();master.dispose();}catch(e){}
+    }
+  };
+}
+
+/* ==========================================================================
+   05-LOGIC · D — ייצוא: WAV (offline render) ו-PNG/SVG.
+   ========================================================================== */
+function audioBufferToWav(buf){
+  const nCh=buf.numberOfChannels, len=buf.length, sr=buf.sampleRate;
+  const data=new ArrayBuffer(44+len*nCh*2), v=new DataView(data);
+  const str=(o,s)=>{ for(let i=0;i<s.length;i++) v.setUint8(o+i, s.charCodeAt(i)); };
+  str(0,'RIFF'); v.setUint32(4, 36+len*nCh*2, true); str(8,'WAVE');
+  str(12,'fmt '); v.setUint32(16,16,true); v.setUint16(20,1,true);
+  v.setUint16(22,nCh,true); v.setUint32(24,sr,true);
+  v.setUint32(28,sr*nCh*2,true); v.setUint16(32,nCh*2,true); v.setUint16(34,16,true);
+  str(36,'data'); v.setUint32(40, len*nCh*2, true);
+  const chans=[]; for(let c=0;c<nCh;c++) chans.push(buf.getChannelData(c));
+  let off=44;
+  for(let i=0;i<len;i++)
+    for(let c=0;c<nCh;c++){
+      const s=Math.max(-1,Math.min(1,chans[c][i]));
+      v.setInt16(off, s<0 ? s*0x8000 : s*0x7fff, true); off+=2;
+    }
+  return new Blob([data],{type:'audio/wav'});
+}
+
+function download(blob, name){
+  const url=URL.createObjectURL(blob), a=document.createElement('a');
+  a.href=url; a.download=name; document.body.appendChild(a); a.click();
+  setTimeout(()=>{URL.revokeObjectURL(url); a.remove();},200);
+}
+
+const NS='http://www.w3.org/2000/svg';
+function svgString(){
+  const clone = svg.cloneNode(true);
+  clone.setAttribute('xmlns',NS);
+  clone.setAttribute('width',VW); clone.setAttribute('height',VH);
+  clone.querySelectorAll('[data-cursor]').forEach(e=>e.remove());
+  const cs = getComputedStyle(document.documentElement);
+  const bg = document.createElementNS(NS,'rect');
+  bg.setAttribute('width',VW); bg.setAttribute('height',VH);
+  bg.setAttribute('fill', cs.getPropertyValue('--panel2').trim() || '#1b262d');
+  clone.insertBefore(bg, clone.firstChild);
+  return new XMLSerializer().serializeToString(clone);
+}
+
+/* ==========================================================================
+   04-COMPONENTS · A — הוויזואליזציה.
+   ========================================================================== */
+const svg = document.getElementById('viz');
+const VW=800, VH=300, PAD={t:14,r:12,b:38,l:12};
+let geom = null;                                     // {x(i), y(v)} של שכבת המנגינה
+let cursorEls = null;
+
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function el(tag, attrs){
+  const e=document.createElementNS(NS,tag);
+  for(const k in attrs) e.setAttribute(k, attrs[k]);
+  return e;
+}
+
+function drawSeries(series, color, opacity, fillOp){
+  const mn=Math.min(...series), mx=Math.max(...series), r=(mx-mn)||1;
+  const x=i=>PAD.l+(VW-PAD.l-PAD.r)*(series.length>1 ? i/(series.length-1) : .5);
+  const y=v=>VH-PAD.b-(VH-PAD.t-PAD.b)*(v-mn)/r;
+  let d=`M ${x(0).toFixed(1)} ${y(series[0]).toFixed(1)}`;
+  for(let i=1;i<series.length;i++) d+=` L ${x(i).toFixed(1)} ${y(series[i]).toFixed(1)}`;
+  if(fillOp) svg.appendChild(el('path',{d:d+` L ${x(series.length-1)} ${VH-PAD.b} L ${x(0)} ${VH-PAD.b} Z`,
+    fill:color,'fill-opacity':fillOp,stroke:'none'}));
+  svg.appendChild(el('path',{d,fill:'none',stroke:color,'stroke-width':2,
+    'stroke-opacity':opacity,'stroke-linejoin':'round'}));
+  return {x,y,mn,mx};
+}
+
+function drawViz(){
+  svg.innerHTML=''; geom=null; cursorEls=null;
+  if(!DATA){ setExportEnabled(false); return; }
+  const S = readSettings();
+  const score = buildScore(S);
+  const FONT='Assistant, system-ui, sans-serif';
+
+  // קו בסיס
+  svg.appendChild(el('line',{x1:PAD.l,y1:VH-PAD.b,x2:VW-PAD.r,y2:VH-PAD.b,
+    stroke:css('--line'),'stroke-width':1}));
+
+  if(score.series.bas) drawSeries(score.series.bas, css('--teal'), .5, .10);
+  if(score.series.har) drawSeries(score.series.har, css('--rose'), .5, 0);
+  if(score.series.mel) geom = drawSeries(score.series.mel, css('--gold'), 1, .10);
+
+  // חבטות הקצב — סימונים על קו הבסיס
+  if(score.hits.length && geom){
+    const g=el('g',{stroke:css('--violet'),'stroke-width':2,'stroke-opacity':.75});
+    score.hits.forEach(i=>{
+      const x=geom.x(i);
+      g.appendChild(el('line',{x1:x,y1:VH-PAD.b,x2:x,y2:VH-PAD.b+7}));
+    });
+    svg.appendChild(g);
+  }
+
+  // ציר: מין/מקס של שכבת המנגינה
+  if(geom){
+    const fmt=v=>Math.abs(v)>=1000?Math.round(v).toLocaleString('he-IL'):(Math.round(v*10)/10);
+    svg.appendChild(el('text',{x:VW-PAD.r,y:PAD.t+8,fill:css('--dim'),'font-size':11,
+      'font-family':FONT,'text-anchor':'end',direction:'ltr'})).textContent=fmt(geom.mx);
+    svg.appendChild(el('text',{x:VW-PAD.r,y:VH-PAD.b-4,fill:css('--dim'),'font-size':11,
+      'font-family':FONT,'text-anchor':'end',direction:'ltr'})).textContent=fmt(geom.mn);
+  }
+
+  // תוויות מהדאטה
+  if(DATA.labels && geom){
+    const marks=[];
+    DATA.labels.forEach((t,i)=>{ if(t && String(t).trim()) marks.push([i,String(t).trim()]); });
+    const keep = marks.length>8 ? marks.filter((_,k)=>k%Math.ceil(marks.length/8)===0) : marks;
+    keep.forEach(([i,t])=>{
+      const x=geom.x(i);
+      svg.appendChild(el('line',{x1:x,y1:VH-PAD.b,x2:x,y2:VH-PAD.b+4,
+        stroke:css('--dim'),'stroke-width':1,'stroke-opacity':.6}));
+      const anchor = i===0?'start' : (i>=DATA.n-2?'end':'middle');
+      svg.appendChild(el('text',{x,y:VH-PAD.b+20,fill:css('--dim'),'font-size':11,
+        'font-family':FONT,'text-anchor':anchor,direction:'rtl'})).textContent=t;
+    });
+  }
+
+  // סמן — נוסף אחרון כדי שיהיה מעל, ומסונן החוצה בייצוא
+  if(geom){
+    const line=el('line',{y1:PAD.t,y2:VH-PAD.b,stroke:css('--gold'),'stroke-width':1,
+      'stroke-opacity':.45,opacity:0,'data-cursor':'1'});
+    const dot=el('circle',{r:5.5,fill:css('--gold'),opacity:0,'data-cursor':'1'});
+    svg.appendChild(line); svg.appendChild(dot);
+    cursorEls={line,dot,series:score.series.mel};
+  }
+  setExportEnabled(true);
+}
+
+function moveCursor(i){
+  if(!cursorEls || !geom || !cursorEls.series) return;
+  const x=geom.x(i), y=geom.y(cursorEls.series[i]);
+  cursorEls.line.setAttribute('x1',x); cursorEls.line.setAttribute('x2',x);
+  cursorEls.line.setAttribute('opacity','1');
+  cursorEls.dot.setAttribute('cx',x); cursorEls.dot.setAttribute('cy',y);
+  cursorEls.dot.setAttribute('opacity','1');
+}
+function hideCursor(){
+  if(!cursorEls) return;
+  cursorEls.line.setAttribute('opacity','0');
+  cursorEls.dot.setAttribute('opacity','0');
+}
+
+/* ==========================================================================
+   04-COMPONENTS · B — המיקסר: כרטיס מתקפל לכל שכבה.
+   ========================================================================== */
+const SRC_FIXED = [['auto:smooth','אוטומטי — קו מוחלק'],['auto:delta','אוטומטי — קצב שינוי'],['off','כבוי']];
+
+function buildMixer(){
+  const wrap=document.getElementById('layers');
+  wrap.innerHTML='';
+  LAYERS.forEach((L,idx)=>{
+    const d=document.createElement('details');
+    d.className='voice'; d.style.setProperty('--c',`var(${L.color})`);
+    if(idx===0) d.open=true;
+    d.innerHTML=`
+      <summary>
+        <span class="name">${L.label}</span>
+        <span class="meta" id="meta_${L.k}"></span>
+        <label class="sw" onclick="event.stopPropagation()">
+          <input type="checkbox" id="on_${L.k}" checked> פעיל
+        </label>
+      </summary>
+      <div class="body">
+        <div class="field">
+          <label for="src_${L.k}">מקור בנתונים</label>
+          <select id="src_${L.k}"></select>
+        </div>
+        <div class="field">
+          <label for="inst_${L.k}">${L.k==='per'?'ערכת הקשה':'כלי / קול'}</label>
+          <select id="inst_${L.k}">${INSTRUMENTS[L.k].map(([v,t])=>`<option value="${v}">${t}</option>`).join('')}</select>
+        </div>
+        <div class="field">
+          <label for="vol_${L.k}">עוצמה: <span id="volV_${L.k}">${L.vol}</span> dB</label>
+          <input type="range" id="vol_${L.k}" min="-40" max="4" value="${L.vol}" step="1">
+        </div>
+      </div>`;
+    wrap.appendChild(d);
+  });
+  LAYERS.forEach(L=>{
+    document.getElementById(`on_${L.k}`).addEventListener('change',onStructuralChange);
+    document.getElementById(`src_${L.k}`).addEventListener('change',e=>{
+      e.target.dataset.touched='1'; onStructuralChange();
+    });
+    document.getElementById(`inst_${L.k}`).addEventListener('change',()=>{ needsRebuild=true; onStructuralChange(); });
+    const v=document.getElementById(`vol_${L.k}`);
+    v.addEventListener('input',()=>{
+      document.getElementById(`volV_${L.k}`).textContent=v.value;
+      if(graph && graph.ch[L.k]) graph.ch[L.k].vol.volume.value = +v.value;
+      saveSettings();
+    });
+  });
+}
+
+/** ממלא את בוררי המקור בעמודות שנטענו. */
+function refreshSources(){
+  const opts = [];
+  if(DATA) DATA.columns.forEach((c,i)=>{ if(c.numeric) opts.push([`col:${i}`, c.name]); });
+  LAYERS.forEach(L=>{
+    const s=document.getElementById(`src_${L.k}`);
+    const prev=s.value;
+    s.innerHTML=[...opts, ...SRC_FIXED].map(([v,t])=>`<option value="${v}">${t}</option>`).join('');
+    // בחירה מפורשת של המשתמש נשמרת; ערך שנקבע כברירת מחדל בלבד — נדרס.
+    const keep = s.dataset.touched && [...opts,...SRC_FIXED].some(([v])=>v===prev);
+    s.value = keep ? prev : DEFAULT_SRC[L.k](opts);
+  });
+  // עמודת התוויות
+  const lf=document.getElementById('labelsField'), lc=document.getElementById('labelCol');
+  const textCols = DATA ? DATA.columns.map((c,i)=>[i,c]).filter(([,c])=>!c.numeric) : [];
+  if(textCols.length){
+    lc.innerHTML = `<option value="-1">— ללא —</option>` +
+      textCols.map(([i,c])=>`<option value="${i}">${c.name}</option>`).join('');
+    lc.value = String(DATA.labelCol);
+    lf.hidden=false;
+  } else lf.hidden=true;
+  updateMeta();
+}
+/** ברירות מחדל: מנגינה מהעמודה הראשונה, הרמוניה מהשנייה אם קיימת, ביס תמיד מוחלק. */
+const DEFAULT_SRC = {
+  mel:o=>o.length ? o[0][0] : 'auto:smooth',
+  har:o=>o.length>1 ? o[1][0] : 'auto:smooth',
+  bas:() =>'auto:smooth',
+  per:o=>o.length ? o[0][0] : 'auto:smooth'
+};
+
+function updateMeta(){
+  LAYERS.forEach(L=>{
+    const src=document.getElementById(`src_${L.k}`);
+    const inst=document.getElementById(`inst_${L.k}`);
+    const on=document.getElementById(`on_${L.k}`).checked;
+    const srcTxt = src.selectedOptions[0] ? src.selectedOptions[0].textContent : '';
+    const instTxt = inst.selectedOptions[0] ? inst.selectedOptions[0].textContent : '';
+    document.getElementById(`meta_${L.k}`).textContent = on ? `${instTxt} · ${srcTxt}` : 'כבוי';
+  });
+}
+
+/* ==========================================================================
+   04-COMPONENTS · C — הגדרות, מצב ונגינה.
+   ========================================================================== */
+const $ = id => document.getElementById(id);
+const btnPlay=$('play'), btnPause=$('pause'), btnStop=$('stop');
+let graph=null, part=null, needsRebuild=true, playing=false, paused=false;
+
+function readSettings(){
+  const S = {
+    duration:+$('tempo').value,
+    scale:$('scale').value,
+    root:+$('root').value,
+    smooth:+$('smooth').value,
+    legato:+$('legato').value,
+    thresh:+$('thresh').value
+  };
+  LAYERS.forEach(L=>{
+    S[L.k]={
+      on:$(`on_${L.k}`).checked,
+      src:$(`src_${L.k}`).value,
+      inst:$(`inst_${L.k}`).value,
+      vol:+$(`vol_${L.k}`).value
+    };
+  });
+  return S;
+}
+
+function saveSettings(){
+  try{ localStorage.setItem('datasong.v2', JSON.stringify(readSettings())); }catch(e){}
+}
+function loadSettings(){
+  let S=null;
+  try{ S=JSON.parse(localStorage.getItem('datasong.v2')||'null'); }catch(e){}
+  if(!S) return;
+  const set=(id,v)=>{ const e=$(id); if(e && v!=null) e.value=v; };
+  set('tempo',S.duration); set('scale',S.scale); set('root',S.root);
+  set('smooth',S.smooth); set('legato',S.legato); set('thresh',S.thresh);
+  LAYERS.forEach(L=>{
+    if(!S[L.k]) return;
+    const on=$(`on_${L.k}`); if(on) on.checked=!!S[L.k].on;
+    set(`inst_${L.k}`,S[L.k].inst); set(`vol_${L.k}`,S[L.k].vol);
+    const vv=$(`volV_${L.k}`); if(vv) vv.textContent=S[L.k].vol;
+  });
+  syncLabels();
+}
+
+function syncLabels(){
+  $('tempoV').textContent=$('tempo').value;
+  $('smoothV').textContent=$('smooth').value;
+  $('legatoV').textContent=(+$('legato').value).toFixed(1);
+  $('threshV').textContent=(+$('thresh').value).toFixed(2);
+  if(DATA){
+    const rate = DATA.n / +$('tempo').value;
+    $('rateHint').textContent = `≈ ${rate.toFixed(1)} צלילים בשנייה · ${DATA.n} נקודות`;
+  } else $('rateHint').textContent='';
+}
+
+function setStatus(msg,cls){ const s=$('status'); s.textContent=msg; s.className='status'+(cls?' '+cls:''); }
+function setExportEnabled(on){ ['expWav','expPng','expSvg'].forEach(id=>$(id).disabled=!on); }
+
+/** שינוי שמחייב ציור מחדש ובניית תווים מחדש. */
+function onStructuralChange(){
+  updateMeta(); syncLabels(); saveSettings();
+  if(playing) stopPlayback();
+  drawViz();
+}
+
+async function ensureGraph(S){
+  if(graph && !needsRebuild) return graph;
+  if(graph){ graph.dispose(); graph=null; }
+  graph = await buildGraph(S);
+  needsRebuild=false;
+  return graph;
+}
+
+async function startPlayback(){
+  if(!DATA) return;
+  if(paused){                                   // המשך מהשהיה
+    Tone.Transport.start(); playing=true; paused=false;
+    btnPlay.disabled=true; btnPause.disabled=false; btnPause.textContent='השהה';
+    return;
+  }
+  if(playing) return;
+  await Tone.start();
+  const S = readSettings();
+  const score = buildScore(S);
+  if(!score || !score.events.length){ setStatus('אין שכבה פעילה לנגן.','err'); return; }
+
+  btnPlay.disabled=true; btnPlay.textContent='מכין…';
+  const g = await ensureGraph(S);
+  LAYERS.forEach(L=>{ g.ch[L.k].vol.volume.value = S[L.k].vol; });
+
+  Tone.Transport.stop(); Tone.Transport.cancel(); Tone.Transport.position=0;
+  if(part){ part.dispose(); part=null; }
+
+  part = new Tone.Part((time, ev)=>g.fire(ev, time), score.events.map(e=>[e.t, e]));
+  part.start(0);
+
+  // הסמן רץ על שעון האודיו, לא על שעון ה-JS
+  for(let i=0;i<score.n;i++){
+    Tone.Transport.schedule(time=>{
+      Tone.Draw.schedule(()=>{
+        moveCursor(i);
+        const raw = score.series.mel ? score.series.mel[i] : null;
+        const lbl = (DATA.labels && DATA.labels[i] && DATA.labels[i].trim()) ? ` · ${DATA.labels[i].trim()}` : '';
+        const val = raw==null ? '' : (Math.round(raw*10)/10) + '';
+        $('readout').textContent = `${val}${lbl} · ${Math.round(100*i/Math.max(1,score.n-1))}%`;
+      }, time);
+    }, i*score.step);
+  }
+  // הסיום נקבע על שעון ה-Transport ולא דרך Tone.Draw: כשהלשונית ברקע
+  // requestAnimationFrame נעצר, ואז ה-UI היה נתקע על "מנגן…" לנצח.
+  Tone.Transport.schedule(()=>{ setTimeout(finishPlayback, 0); }, score.duration + 0.05);
+
+  Tone.Transport.start('+0.1');
+  playing=true; paused=false;
+  btnPlay.textContent='מנגן…'; btnPause.disabled=false; btnStop.disabled=false;
+}
+
+function pausePlayback(){
+  if(!playing) return;
+  Tone.Transport.pause();
+  if(graph) graph.release();
+  playing=false; paused=true;
+  btnPlay.disabled=false; btnPlay.textContent='המשך';
+  btnPause.disabled=true;
+}
+
+function stopPlayback(){
+  Tone.Transport.stop(); Tone.Transport.cancel(); Tone.Transport.position=0;
+  if(part){ part.dispose(); part=null; }
+  if(graph) graph.release();
+  playing=false; paused=false;
+  btnPlay.disabled=!DATA; btnPlay.textContent='נגן';
+  btnPause.disabled=true; btnPause.textContent='השהה'; btnStop.disabled=true;
+  hideCursor(); $('readout').textContent='';
+}
+
+function finishPlayback(){
+  if(graph) graph.release();
+  playing=false; paused=false;
+  btnPlay.disabled=!DATA; btnPlay.textContent='נגן שוב';
+  btnPause.disabled=true; btnStop.disabled=true;
+  setTimeout(()=>{ if(!playing){ hideCursor(); $('readout').textContent=''; } }, 1400);
+  Tone.Transport.stop(); Tone.Transport.cancel(); Tone.Transport.position=0;
+  if(part){ part.dispose(); part=null; }
+}
+
+/* ---------- טעינת דאטה ---------- */
+/** `libId` — מזהה האריח בספרייה, אם המאגר הגיע משם. אחרת נציע לשמור אותו. */
+function setData(d, libId){
+  if(!d){ setStatus('לא הצלחתי לזהות נתונים בקלט.','err'); return; }
+  const numericCols = d.columns.filter(c=>c.numeric);
+  if(!numericCols.length || d.n<2){ setStatus('לא נמצאו מספיק מספרים בדאטה.','err'); return; }
+  stopPlayback();
+  DATA = d;
+  $('title').textContent = d.title;
+  refreshSources();
+  needsRebuild = true;
+  drawViz(); syncLabels();
+  btnPlay.disabled=false;
+  const cols = numericCols.length;
+  setStatus(
+    `נטענו ${d.n} נקודות · ${cols} ${cols===1?'עמודה מספרית':'עמודות מספריות'}` +
+    (resampled ? ' (דוגם מחדש ל-512 כדי שיישאר מוזיקלי)' : '') + '. אפשר לנגן.',
+    'ok');
+  $('sampleNote').textContent = d.source ? `מקור הדוגמה הנוכחית: ${d.source}` : '';
+
+  // הצעת שמירה — רק למאגר שאינו כבר בספרייה, וכשהאחסון בכלל זמין
+  markActive(libId || null);
+  $('saveRow').hidden = !!libId || !storageAvailable;
+  if(!$('saveRow').hidden) $('saveName').value = d.title;
+
+  saveSettings();
+}
+
+const readText = f => new Promise((res,rej)=>{
+  const r=new FileReader();
+  r.onload=()=>res(r.result); r.onerror=()=>rej(new Error(f.name));
+  r.readAsText(f,'utf-8');
+});
+
+/**
+ * קורא קובץ אחד או כמה. קובץ בודד — נטען ומוצע לשמירה בשם.
+ * כמה קבצים יחד — כולם נכנסים לספרייה בשם הקובץ, והאחרון מתנגן.
+ */
+async function readFiles(files){
+  const list = Array.from(files||[]);
+  if(!list.length) return;
+
+  if(list.length === 1){
+    try{
+      const d = parseInput(await readText(list[0]), list[0].name.replace(/\.[^.]+$/,''));
+      if(d) setData(d); else setStatus(`לא הצלחתי לזהות נתונים בקובץ "${list[0].name}".`,'err');
+    }catch(e){ setStatus('שגיאה בקריאת הקובץ.','err'); }
+    return;
+  }
+
+  let ok=0; const failed=[];
+  for(const f of list){
+    try{
+      const d = parseInput(await readText(f), f.name.replace(/\.[^.]+$/,''));
+      if(d){ setData(d); saveToLibrary(f.name.replace(/\.[^.]+$/,'')); ok++; }
+      else failed.push(f.name);
+    }catch(e){ failed.push(f.name); }
+  }
+  renderLibrary();
+  setStatus(
+    `${ok} מתוך ${list.length} קבצים נוספו לספרייה` +
+    (failed.length ? ` · לא זוהו נתונים ב: ${failed.join(', ')}` : '') + '.',
+    failed.length ? 'err' : 'ok');
+}
+
+function loadSample(id){
+  const s=SAMPLES.find(x=>x.id===id);
+  if(!s) return;
+  const values = s.values || s.gen(s.n);
+  const columns=[{name:s.name||'ערך', values:values.map(Number), numeric:true}];
+  if(s.labels) columns.push({name:'תוויות', values:s.labels.map(String), numeric:false});
+  setData(finalize({title:s.title, source:s.source, columns,
+    preferLabels: s.labels ? 1 : -1}), 'built:'+id);
+}
+
+/* ==========================================================================
+   04-COMPONENTS · E — הספרייה: מאגרים מובנים + מאגרים שהמשתמשת שמרה.
+   נשמרת ב-localStorage, ולכן היא אישית לדפדפן הזה ולא עוזבת את המחשב.
+   ========================================================================== */
+const LIB_KEY = 'datasong.library';
+let activeId = null;
+
+function libRead(){
+  try{ const v=JSON.parse(localStorage.getItem(LIB_KEY)||'[]'); return Array.isArray(v)?v:[]; }
+  catch(e){ return []; }
+}
+function libWrite(list){
+  try{ localStorage.setItem(LIB_KEY, JSON.stringify(list)); return true; }
+  catch(e){ return false; }        // מכסה גם מצב שבו האחסון חסום או מלא
+}
+const storageAvailable = (()=>{ try{
+  localStorage.setItem('datasong.probe','1'); localStorage.removeItem('datasong.probe'); return true;
+}catch(e){ return false; } })();
+
+/** שומר את המאגר הטעון כרגע תחת שם שנבחר. */
+function saveToLibrary(name){
+  if(!DATA) return;
+  name = (name||'').trim() || DATA.title || 'מאגר ללא שם';
+  const list = libRead();
+  const entry = {
+    id: 'u'+Date.now().toString(36),
+    title: name,
+    source: DATA.source || 'הועלה על ידך',
+    savedAt: new Date().toISOString().slice(0,10),
+    labelCol: DATA.labelCol,
+    columns: DATA.columns.map(c=>({name:c.name, numeric:c.numeric, values:c.values}))
+  };
+  const dup = list.findIndex(x=>x.title===name);
+  if(dup>=0) list[dup]=entry; else list.push(entry);
+  if(!libWrite(list)){
+    setStatus('לא הצלחתי לשמור — האחסון המקומי חסום או מלא בדפדפן הזה.','err');
+    return;
+  }
+  activeId = 'user:'+entry.id;
+  renderLibrary();
+  setStatus(`"${name}" נשמר בספרייה. לחיצה על האריח תשמיע אותו שוב.`,'ok');
+  $('saveRow').hidden = true;
+}
+
+function loadFromLibrary(id){
+  const e = libRead().find(x=>x.id===id);
+  if(!e) return;
+  setData(finalize({
+    title:e.title, source:e.source,
+    columns:e.columns.map(c=>({name:c.name, numeric:c.numeric, values:c.values.slice()})),
+    preferLabels: e.labelCol ?? -1
+  }), 'user:'+id);
+}
+
+function deleteFromLibrary(id, title){
+  if(!confirm(`למחוק את "${title}" מהספרייה?`)) return;
+  libWrite(libRead().filter(x=>x.id!==id));
+  if(activeId==='user:'+id) activeId=null;
+  renderLibrary();
+  setStatus(`"${title}" נמחק מהספרייה.`,'');
+}
+
+function markActive(id){
+  activeId = id;
+  document.querySelectorAll('#library .chip').forEach(c=>
+    c.classList.toggle('active', c.dataset.id===id));
+}
+
+function renderLibrary(){
+  const wrap = $('library');
+  const mine = libRead();
+  wrap.innerHTML = '';
+
+  const chip = (id, title, source, badge, isMine, onClick, onDelete) => {
+    const b=document.createElement('button');
+    b.type='button'; b.className='chip'+(isMine?' mine':'')+(activeId===id?' active':'');
+    b.dataset.id=id;
+    b.innerHTML = `<span class="ct"></span><span class="cs"></span><span class="cb">${badge}</span>`;
+    b.querySelector('.ct').textContent = title;                 // textContent — התוכן מגיע מקבצי המשתמשת
+    b.querySelector('.cs').textContent = source || '';
+    b.addEventListener('click', onClick);
+    if(onDelete){
+      const d=document.createElement('button');
+      d.type='button'; d.className='del'; d.textContent='×';
+      d.title='מחק מהספרייה'; d.setAttribute('aria-label','מחק את '+title);
+      d.addEventListener('click',ev=>{ ev.stopPropagation(); onDelete(); });
+      b.appendChild(d);
+    }
+    wrap.appendChild(b);
+  };
+
+  SAMPLES.forEach(s=>chip('built:'+s.id, s.title, s.source, 'מובנה', false,
+    ()=>loadSample(s.id), null));
+  mine.forEach(e=>chip('user:'+e.id, e.title,
+    `${e.columns.filter(c=>c.numeric).length} עמודות · ${e.columns[0].values.length} נקודות · נשמר ${e.savedAt}`,
+    'שלי', true, ()=>loadFromLibrary(e.id), ()=>deleteFromLibrary(e.id, e.title)));
+
+  $('libNote').textContent = storageAvailable
+    ? (mine.length
+        ? `${mine.length} מאגרים שלך נשמרים בדפדפן הזה. גררו כמה קבצים יחד כדי להוסיף עוד.`
+        : 'טענו קובץ או הדביקו טבלה, תנו שם ולחצו "שמור בספרייה" — והוא יופיע כאן. אפשר לגרור כמה קבצים בבת אחת.')
+    : 'האחסון המקומי חסום בהקשר הזה, ולכן אי אפשר לשמור מאגרים. פתחו את הקובץ ישירות בדפדפן כדי שהספרייה תעבוד.';
+}
+
+/* ---------- ייצוא ---------- */
+async function exportWav(){
+  if(!DATA) return;
+  const S=readSettings(), score=buildScore(S);
+  if(!score || !score.events.length){ expStatus('אין שכבה פעילה לייצוא.','err'); return; }
+  const btn=$('expWav'); btn.disabled=true;
+  $('expProg').hidden=false; $('expProg').removeAttribute('value');   // מצב "עסוק" — אין אחוזים אמיתיים
+  // הרינדור עשוי לקחת יותר מאורך היצירה (הריוורב הקונבולוציוני יקר), לכן מונה זמן אמיתי
+  // במקום הבטחה שלא נוכל לעמוד בה.
+  const t0 = performance.now();
+  const tick = setInterval(()=>{
+    expStatus(`מרנדר ${score.total.toFixed(0)} שנ׳ של אודיו… ${((performance.now()-t0)/1000).toFixed(0)} שנ׳ עברו.`,'');
+  }, 250);
+  expStatus('מרנדר…','');
+  try{
+    const buffer = await Tone.Offline(async ()=>{
+      const g = await buildGraph(S);
+      score.events.forEach(ev=>g.fire(ev, ev.t));
+    }, score.total, 2, 44100);
+    const wav = audioBufferToWav(buffer.get ? buffer.get() : buffer);
+    download(wav, fileBase()+'.wav');
+    expStatus(`נשמר — ${score.total.toFixed(1)} שנ׳, ${(wav.size/1048576).toFixed(1)} MB ` +
+              `(רינדור: ${((performance.now()-t0)/1000).toFixed(1)} שנ׳).`,'ok');
+  }catch(err){
+    console.error(err);
+    expStatus('הרינדור נכשל: '+(err && err.message ? err.message : err),'err');
+  }finally{
+    clearInterval(tick);
+    btn.disabled=false; $('expProg').hidden=true;
+  }
+}
+
+function exportSvg(){
+  download(new Blob([svgString()],{type:'image/svg+xml;charset=utf-8'}), fileBase()+'.svg');
+  expStatus('קובץ SVG נשמר.','ok');
+}
+
+function exportPng(){
+  const scale=2;
+  const blob=new Blob([svgString()],{type:'image/svg+xml;charset=utf-8'});
+  const url=URL.createObjectURL(blob), img=new Image();
+  img.onload=()=>{
+    const cv=document.createElement('canvas');
+    cv.width=VW*scale; cv.height=VH*scale;
+    const ctx=cv.getContext('2d');
+    ctx.fillStyle=css('--panel2')||'#1b262d';
+    ctx.fillRect(0,0,cv.width,cv.height);
+    ctx.drawImage(img,0,0,cv.width,cv.height);
+    URL.revokeObjectURL(url);
+    cv.toBlob(b=>{ download(b, fileBase()+'.png'); expStatus('קובץ PNG נשמר (רזולוציה כפולה).','ok'); },'image/png');
+  };
+  img.onerror=()=>{ URL.revokeObjectURL(url); expStatus('המרת ה-PNG נכשלה — נסו SVG.','err'); };
+  img.src=url;
+}
+
+const fileBase = () => 'datasong-' + (DATA && DATA.title ? DATA.title.replace(/[\\/:*?"<>|]/g,'').slice(0,40).trim() : 'export');
+function expStatus(m,c){ const e=$('expStatus'); e.textContent=m; e.className='status'+(c?' '+c:''); }
+
+/* ==========================================================================
+   04-COMPONENTS · D — חיווט.
+   ========================================================================== */
+buildMixer();
+refreshSources();
+loadSettings();
+syncLabels();
+
+renderLibrary();
+
+$('saveLib').addEventListener('click',()=>saveToLibrary($('saveName').value));
+$('saveName').addEventListener('keydown',e=>{ if(e.key==='Enter') saveToLibrary(e.target.value); });
+
+btnPlay.addEventListener('click',startPlayback);
+btnPause.addEventListener('click',pausePlayback);
+btnStop.addEventListener('click',stopPlayback);
+
+['tempo','smooth','legato','thresh'].forEach(id=>
+  $(id).addEventListener('input',()=>{ syncLabels(); saveSettings(); drawViz(); }));
+['scale','root'].forEach(id=>$(id).addEventListener('change',onStructuralChange));
+$('labelCol').addEventListener('change',e=>{
+  const i=+e.target.value;
+  DATA.labelCol=i;
+  DATA.labels = i>=0 ? DATA.columns[i].values.map(String) : null;
+  drawViz();
+});
+
+// קובץ
+const fileInput=$('file'), drop=$('drop');
 drop.addEventListener('click',()=>fileInput.click());
-fileInput.addEventListener('change',e=>{const f=e.target.files[0];if(f)readFile(f);});
+fileInput.addEventListener('change',e=>{ readFiles(e.target.files); e.target.value=''; });
 ['dragover','dragenter'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add('over');}));
 ['dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove('over');}));
-drop.addEventListener('drop',e=>{const f=e.dataTransfer.files[0];if(f)readFile(f);});
-function readFile(f){
-  const r=new FileReader();
-  r.onload=()=>{ const d=parsePasted(r.result); if(d){stopAll();setData(d);} else setStatus("לא הצלחתי לקרוא את הקובץ.","err"); };
-  r.readAsText(f);
-}
+drop.addEventListener('drop',e=>readFiles(e.dataTransfer.files));
+
 // הדבקה
-document.getElementById('load').addEventListener('click',()=>{
-  const d=parsePasted(document.getElementById('paste').value);
-  if(d){stopAll();setData(d);} else setStatus("לא נמצאו נתונים בהדבקה.","err");
+$('load').addEventListener('click',()=>{
+  const d=parseInput($('paste').value);
+  if(d) setData(d); else setStatus('לא נמצאו נתונים בהדבקה.','err');
 });
-// דמו
-const DEMO={title:"פרופיל הגובה של אשדוד — מהים אל השפלה",hint:"מסע ממערב למזרח",
-  melody:[0,0,1,3,6,11,18,26,33,37,35,30,24,18,14,12,13,15,16,15,14,13,14,16,19,22,24,25,24,23,24,26,29,32,34,35,36,38,41,44,46,47,48,50,53,56,58,60,63,66,68,70,73,76,79,82,85,88,91,95],
-  labels:["חוף","","","","","","","","רכס","","","","","שקע","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","מזרח"]};
-document.getElementById('demo').addEventListener('click',()=>{stopAll();setData(JSON.parse(JSON.stringify(DEMO)));});
+
+// ייצוא
+$('expWav').addEventListener('click',exportWav);
+$('expPng').addEventListener('click',exportPng);
+$('expSvg').addEventListener('click',exportSvg);
+
+// מקלדת: רווח מנגן/משהה — אך לא כשהמיקוד בשדה קלט
+document.addEventListener('keydown',e=>{
+  if(e.code!=='Space') return;
+  const t=e.target.tagName;
+  if(t==='INPUT'||t==='TEXTAREA'||t==='SELECT'||t==='BUTTON'||t==='SUMMARY') return;
+  e.preventDefault();
+  if(playing) pausePlayback(); else if(DATA) startPlayback();
+});
+
+window.addEventListener('beforeunload',()=>{ try{Tone.Transport.stop();}catch(e){} });
 </script>
 </body>
 </html>
