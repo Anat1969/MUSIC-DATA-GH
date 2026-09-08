@@ -31,6 +31,8 @@
     --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:24px;
     --r:6px;
     --topbar:56px;
+    --side:312px;      /* רוחב זהה לשתי עמודות המכוונים — הסימטריה מתחילה כאן */
+    --colfoot:132px;   /* גובה זהה לשני הרצועות שמתחת למסגרות — כך המסגרות מיושרות */
   }
   *{margin:0;padding:0;box-sizing:border-box}
   body{
@@ -51,25 +53,50 @@
    ========================================================================== */
   .app{display:flex;flex-direction:column;gap:var(--s3);padding:var(--s3)}
 
-  /* שלוש עמודות: הזמן (גרף), המקום (אדריכלות), והמכוונים המוזיקליים.
-     שתי הקריאות של אותם נתונים עומדות זו לצד זו, גלויות בו-זמנית. */
-  @media(min-width:1240px) and (min-height:620px){
+  /* ארבע עמודות סימטריות. מימין לשמאל:
+     מכווני הזמן · הביטוי הוויזואלי של הזמן · הביטוי הוויזואלי של המרחב · מכווני המרחב.
+     שתי המסגרות באמצע זהות ברוחב ובגובה; שתי עמודות המכוונים זהות ברוחב.
+     מתחת לכולן, על אותו מסך: הספרייה והוספת מאגר. */
+  @media(min-width:1440px) and (min-height:660px){
     html,body{height:100%;overflow:hidden}
     .app{
       height:100dvh;padding:var(--s3);gap:var(--s3);
       display:grid;grid-template-rows:var(--topbar) minmax(0,1fr) auto;
-      grid-template-columns:minmax(0,1fr) minmax(0,1fr) 340px;
-      grid-template-areas:"top top top" "stage arch mixer" "rail rail rail";
+      grid-template-columns:var(--side) minmax(0,1fr) minmax(0,1fr) var(--side);
+      grid-template-areas:
+        "top   top   top  top"
+        "mixer stage arch archctl"
+        "rail  rail  rail rail";
     }
     .topbar{grid-area:top}
+    .mixercol{grid-area:mixer;min-height:0}
     .stagecol{grid-area:stage;min-height:0}
     .archcol{grid-area:arch;min-height:0}
-    .mixercol{grid-area:mixer;min-height:0}
+    .archctlcol{grid-area:archctl;min-height:0}
     .rail{grid-area:rail}
   }
-  /* מתחת לרוחב הזה אין מספיק מקום לשלוש עמודות — חוזרים לזרימה עם גלילה */
-  @media(max-width:1239px){
-    .archframe{min-height:240px}
+  /* מסך בינוני: הציר נשמר, אבל בשתי שורות — זמן למעלה, מרחב מתחתיו */
+  @media(min-width:1000px) and (max-width:1439px){
+    .app{
+      display:grid;
+      grid-template-columns:var(--side) minmax(0,1fr);
+      grid-template-areas:
+        "top     top"
+        "mixer   stage"
+        "archctl arch"
+        "rail    rail";
+    }
+    .topbar{grid-area:top}
+    .mixercol{grid-area:mixer}
+    .stagecol{grid-area:stage}
+    .archctlcol{grid-area:archctl}
+    .archcol{grid-area:arch}
+    .rail{grid-area:rail}
+    .stage,.archframe{min-height:300px}
+  }
+  /* מתחת לזה אין מקום לעמודות — זרימה רגילה עם גלילה */
+  @media(max-width:999px){
+    .stage,.archframe{min-height:240px}
   }
 
 /* ---------- סרגל עליון: זהות, נגינה, ופקדים גלובליים ---------- */
@@ -104,12 +131,25 @@
   .btn.play{background:var(--teal);color:#04181c}
   .btn.sm{padding:6px 12px;font-size:.8rem}
 
-/* ---------- עמודת הבמה ---------- */
-  .stagecol{display:flex;flex-direction:column;gap:var(--s2);min-width:0}
+/* ---------- שתי עמודות הביטוי הוויזואלי — מבנה זהה, ולכן מסגרות מיושרות ----------
+   כותרת (גובה זהה) · מסגרת (כל השאר) · רצועה תחתונה (גובה זהה).             */
+  .stagecol,.archcol{
+    display:grid;grid-template-rows:auto minmax(0,1fr) var(--colfoot);
+    gap:var(--s2);min-width:0;min-height:0;
+  }
+  .colhead{display:flex;align-items:center;gap:var(--s3);min-height:28px;flex-wrap:wrap}
+  .colhead h3{
+    font-size:.72rem;letter-spacing:.06em;font-weight:700;color:var(--dim);
+    white-space:nowrap;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;
+  }
+  .colhead .val{
+    font-size:.8rem;color:var(--dim);font-variant-numeric:tabular-nums;white-space:nowrap;
+  }
+  .colfoot{display:flex;flex-direction:column;gap:var(--s2);min-height:0;overflow:auto}
   .stage{
-    flex:1;min-height:180px;
+    min-height:0;
     background:var(--panel2);border:1px solid var(--line);border-radius:var(--r);
-    padding:var(--s2);display:flex;align-items:center;justify-content:center;
+    padding:var(--s2);display:flex;align-items:center;justify-content:center;overflow:hidden;
   }
   svg#viz{display:block;width:100%;height:auto;max-height:100%}
   .now{
@@ -122,8 +162,7 @@
 /* ---------- לוח הפרשנות — תוכן, לא עזרה: תמיד גלוי ---------- */
   .interp{
     background:var(--panel);border:1px solid var(--line);border-radius:var(--r);
-    padding:var(--s3) var(--s4);display:grid;gap:var(--s2);
-    max-height:34vh;overflow:auto;
+    padding:var(--s2) var(--s3);display:grid;gap:var(--s2);
   }
   .interp[hidden]{display:none}
   .ip{font-size:.84rem;line-height:1.6;margin:0;
@@ -137,10 +176,6 @@
   .ip.src{font-size:.75rem;color:var(--dim)}
 
 /* ---------- עמודת האדריכלות ---------- */
-  .archcol{display:flex;flex-direction:column;gap:var(--s2);min-width:0}
-  .archhead{display:flex;align-items:center;gap:var(--s3);flex-wrap:wrap}
-  .archhead h3{font-size:.72rem;letter-spacing:.06em;font-weight:700;color:var(--dim);
-    white-space:nowrap;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
   .seg{display:flex;border:1px solid var(--line);border-radius:5px;overflow:hidden;flex:none}
   .segb{
     font-family:inherit;font-size:.72rem;padding:4px 10px;cursor:pointer;
@@ -149,8 +184,6 @@
   .segb.on{background:var(--panel3);color:var(--ink);font-weight:600}
   .segb:hover:not(.on){color:var(--ink)}
 
-  /* המסגרת והמכוונים זה לצד זה — מכווננים תוך כדי הסתכלות בשרטוט */
-  .archbody{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 176px;gap:var(--s2)}
   .archframe{
     position:relative;min-height:0;
     background:var(--panel2);border:1px solid var(--line);border-radius:var(--r);
@@ -171,10 +204,7 @@
   .ownclear{position:absolute;bottom:0;inset-inline-end:0}
   .ownclear[hidden]{display:none}
 
-  .archctl{
-    background:var(--panel);border:1px solid var(--line);border-radius:var(--r);
-    padding:var(--s2) 10px;display:flex;flex-direction:column;gap:7px;overflow:auto;
-  }
+  .archctl{display:grid;gap:7px}
   .archctl .field{display:grid;gap:3px}
   .archctl label{font-size:.72rem;color:var(--dim)}
   .archctl select{
@@ -182,15 +212,25 @@
     background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:4px;
   }
   .archctl input[type=range]{width:100%;accent-color:var(--rose);height:14px;margin:0}
-  .archexp{margin-top:auto;padding-top:var(--s2);border-top:1px solid var(--line)}
   .archexp .btn{padding:4px 9px;font-size:.72rem}
   .ip.read{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);
     padding:var(--s2) var(--s3);font-size:.8rem}
   .ip.read .ik{border-color:var(--rose);color:var(--rose)}
   .ip.read[hidden]{display:none}
 
-/* ---------- עמודת המכוונים ---------- */
-  .mixercol{display:flex;flex-direction:column;gap:var(--s3);overflow:auto;min-width:0}
+/* ---------- שתי עמודות המכוונים — זהות במבנה ובמשקל ---------- */
+  .mixercol,.archctlcol{
+    display:flex;flex-direction:column;gap:var(--s2);
+    overflow:auto;min-width:0;min-height:0;
+  }
+  /* כותרת העמודה יושבת בגובה כותרות המסגרות, ולכן הכול מיושר לרוחב המסך */
+  .ctlhead{
+    display:flex;align-items:center;gap:var(--s2);min-height:28px;
+    font-size:.72rem;letter-spacing:.06em;font-weight:700;color:var(--dim);
+  }
+  .ctlhead::after{content:"";flex:1;height:1px;background:var(--line)}
+  .ctlhead .dot{width:6px;height:6px;border-radius:50%;background:var(--gold);flex:none}
+  .archctlcol .ctlhead .dot{background:var(--rose)}
   .panel{
     background:var(--panel);border:1px solid var(--line);border-radius:var(--r);
     padding:10px 12px;
@@ -250,7 +290,7 @@
     padding:var(--s3);display:grid;gap:var(--s3);
     grid-template-columns:1fr;
   }
-  @media(min-width:1000px){ .rail{grid-template-columns:284px minmax(0,1fr)} }
+  @media(min-width:1000px){ .rail{grid-template-columns:var(--side) minmax(0,1fr)} }
   .loadbox{display:grid;gap:var(--s2);align-content:start;min-width:0}
   .drop{
     border:1.5px dashed var(--line);border-radius:5px;padding:9px var(--s3);
@@ -291,15 +331,17 @@
     display:flex;gap:var(--s2);overflow-x:auto;padding-bottom:var(--s1);
     scrollbar-width:thin;
   }
+  /* אריח = תמונה ליד השם. התמונה נשמרת לכל מאגר בנפרד, בדפדפן. */
   .chip{
-    position:relative;flex:0 0 208px;text-align:start;cursor:pointer;font-family:inherit;
+    position:relative;flex:0 0 262px;text-align:start;cursor:pointer;font-family:inherit;
     background:var(--panel2);border:1px solid var(--line);border-radius:5px;
-    padding:var(--s2) var(--s3);color:var(--ink);
-    display:flex;flex-direction:column;gap:2px;
+    padding:var(--s2) var(--s3) var(--s2) var(--s2);color:var(--ink);
+    display:grid;grid-template-columns:56px minmax(0,1fr);gap:var(--s2);align-items:start;
     transition:border-color .15s,background .15s;
   }
   .chip:hover{border-color:var(--gold);background:var(--panel3)}
   .chip.active{border-color:var(--gold);background:rgba(214,162,78,.10)}
+  .chip .ctext{display:flex;flex-direction:column;gap:2px;min-width:0;padding-inline-end:16px}
   .chip .ct{font-weight:600;font-size:.8rem;line-height:1.3}
   .chip .cs{font-size:.7rem;color:var(--dim);line-height:1.4;
     display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
@@ -313,6 +355,24 @@
     border:none;background:transparent;color:var(--dim);cursor:pointer;border-radius:4px;
   }
   .chip .del:hover{background:rgba(224,128,143,.15);color:var(--err)}
+
+  /* תא התמונה: לחיצה עליו בוחרת קובץ, גרירה אליו עובדת גם היא */
+  .thumb{
+    position:relative;width:56px;height:56px;flex:none;border-radius:4px;overflow:hidden;
+    background:var(--bg);border:1px dashed var(--line);
+    display:flex;align-items:center;justify-content:center;
+    color:var(--dim);font-size:1rem;line-height:1;cursor:pointer;
+    transition:border-color .15s,color .15s;
+  }
+  .thumb:hover,.thumb.over{border-color:var(--gold);color:var(--gold)}
+  .thumb.has{border-style:solid}
+  .thumb img{width:100%;height:100%;object-fit:cover;display:block}
+  .thumb .tx{
+    position:absolute;inset-block-end:0;inset-inline-start:0;
+    width:16px;height:16px;border:none;border-radius:0 4px 0 0;
+    background:rgba(14,20,24,.78);color:var(--dim);font-size:.7rem;line-height:1;cursor:pointer;
+  }
+  .thumb .tx:hover{color:var(--err)}
 
   .sw{display:flex;align-items:center;gap:6px;font-size:.76rem;color:var(--dim);cursor:pointer;white-space:nowrap}
   .sw input{width:14px;height:14px;accent-color:var(--gold);flex:none}
@@ -347,34 +407,6 @@
       <button class="btn ghost sm" id="pause" title="עוצר במקום ושומר את הנקודה." disabled>השהה</button>
       <button class="btn ghost sm" id="stop" title="עוצר ומחזיר להתחלה." disabled>עצור</button>
     </div>
-    <div class="tbsep"></div>
-
-    <div class="tgroup" title="כל הדאטה נדחס לזמן הזה. ארוך — כל נקודה נושמת; קצר — המגמה בולטת והפרטים מיטשטשים.">
-      <label for="tempo">אורך <span id="tempoV">20</span>ש׳</label>
-      <input type="range" id="tempo" min="5" max="120" value="20" step="1">
-    </div>
-
-    <div class="tgroup" title="קובע לאילו צלילים המספרים נצמדים. פנטטוני לא יכול להישמע צורם; כרומטי נאמן לכל הפרש קטן — מדויק אך חד.">
-      <label for="scale">סולם</label>
-      <select id="scale">
-        <option value="pent">פנטטוני — רך</option>
-        <option value="major">מז׳ורי — בהיר</option>
-        <option value="minor">מינורי — עמוק</option>
-        <option value="dorian">דוריאני — נוגה-חמים</option>
-        <option value="chromatic">כרומטי — נאמן לדאטה</option>
-      </select>
-    </div>
-
-    <div class="tgroup" title="הצליל שסביבו כל השכבות מסתדרות. משנה את הצבע הרגשי בלי לגעת בנתונים.">
-      <label for="root">טוניקה</label>
-      <select id="root">
-        <option value="0">דו</option><option value="2">רה</option>
-        <option value="4">מי</option><option value="5">פה</option>
-        <option value="7" selected>סול</option><option value="9">לה</option>
-        <option value="11">סי</option>
-      </select>
-    </div>
-
     <span class="grow"></span>
     <label class="sw" title="מציג הסבר מלא מתחת לכל פקד. כבוי — המסך נשאר קומפקטי, וההסברים זמינים בריחוף עם העכבר.">
       <input type="checkbox" id="showHelp"> הסברים
@@ -382,46 +414,114 @@
     <span class="status" id="rateHint"></span>
   </header>
 
-  <!-- ===================== הבמה ===================== -->
+  <!-- ============ הביטוי הוויזואלי של הזמן ============ -->
   <main class="stagecol">
+    <div class="colhead">
+      <h3>הזמן — אותם נתונים כמוזיקה</h3>
+      <span class="val" id="readout"></span>
+    </div>
+
     <div class="stage">
       <svg id="viz" viewBox="0 0 800 300" role="img" aria-labelledby="vizDesc"></svg>
       <span class="sr" id="vizDesc">גרף הנתונים הנטענים. כל שכבה מוזיקלית מצוירת בצבע משלה.</span>
     </div>
-    <div class="now">
-      <span class="lbl" id="title">— בחרו מאגר מהספרייה כדי להתחיל —</span>
-      <span class="val" id="readout"></span>
-    </div>
 
-    <!-- הייצוא יושב ליד הגרף, כי הוא פועל עליו ועל היצירה שנשמעת -->
-    <div class="exportbar">
-      <span class="exlabel">ייצוא</span>
-      <button class="btn sm" id="expWav" title="מרנדר את היצירה לקובץ שמע. לוקח זמן — הריוורב יקר חישובית." disabled>WAV</button>
-      <button class="btn sm ghost" id="expPng" title="תמונת הגרף ברזולוציה כפולה, רקע אטום." disabled>PNG</button>
-      <button class="btn sm ghost" id="expSvg" title="וקטור — נשאר חד בכל הגדלה, ניתן לעריכה." disabled>SVG</button>
-      <span class="status" id="expStatus"></span>
-      <progress id="expProg" max="100" value="0" hidden></progress>
-    </div>
-    <p class="help">ה-WAV הוא הקלטה של בדיוק מה שנשמע — למצגת או לעריכה מוזיקלית.
-      ה-PNG/SVG הוא הגרף עצמו, בלי הסמן, מוכן למאמר או ללוח מצגת.</p>
-    <div class="interp" id="interp" hidden>
-      <p class="ip story"><span class="ik">הנתונים</span><span id="ipStory"></span></p>
-      <p class="ip listen"><span class="ik">מה שומעים</span><span id="ipListen"></span></p>
-      <p class="ip src" id="ipSrcWrap"><span class="ik">מקור</span><span id="ipSrc"></span></p>
+    <div class="colfoot">
+      <div class="now">
+        <span class="lbl" id="title">— בחרו מאגר מהספרייה כדי להתחיל —</span>
+      </div>
+      <!-- הייצוא יושב ליד הגרף, כי הוא פועל עליו ועל היצירה שנשמעת -->
+      <div class="exportbar">
+        <span class="exlabel">ייצוא</span>
+        <button class="btn sm" id="expWav" title="מרנדר את היצירה לקובץ שמע. לוקח זמן — הריוורב יקר חישובית." disabled>WAV</button>
+        <button class="btn sm ghost" id="expPng" title="תמונת הגרף ברזולוציה כפולה, רקע אטום." disabled>PNG</button>
+        <button class="btn sm ghost" id="expSvg" title="וקטור — נשאר חד בכל הגדלה, ניתן לעריכה." disabled>SVG</button>
+        <span class="status" id="expStatus"></span>
+        <progress id="expProg" max="100" value="0" hidden></progress>
+      </div>
+      <p class="help">ה-WAV הוא הקלטה של בדיוק מה שנשמע — למצגת או לעריכה מוזיקלית.
+        ה-PNG/SVG הוא הגרף עצמו, בלי הסמן, מוכן למאמר או ללוח מצגת.</p>
+      <div class="interp" id="interp" hidden>
+        <p class="ip story"><span class="ik">הנתונים</span><span id="ipStory"></span></p>
+        <p class="ip listen"><span class="ik">מה שומעים</span><span id="ipListen"></span></p>
+        <p class="ip src" id="ipSrcWrap"><span class="ik">מקור</span><span id="ipSrc"></span></p>
+      </div>
     </div>
   </main>
 
+  <!-- ============ מכווני הזמן (מימין לגרף) ============ -->
+  <aside class="mixercol">
+    <div class="ctlhead"><span class="dot"></span>מכווני הזמן</div>
+
+    <div class="panel">
+      <h3>בסיס</h3>
+      <div class="advgrid">
+        <div class="field" title="כל הדאטה נדחס לזמן הזה. ארוך — כל נקודה נושמת; קצר — המגמה בולטת והפרטים מיטשטשים.">
+          <label for="tempo">אורך היצירה: <span id="tempoV">20</span> שנ׳</label>
+          <input type="range" id="tempo" min="5" max="120" value="20" step="1">
+        </div>
+        <div class="field" title="קובע לאילו צלילים המספרים נצמדים. פנטטוני לא יכול להישמע צורם; כרומטי נאמן לכל הפרש קטן — מדויק אך חד.">
+          <label for="scale">סולם</label>
+          <select id="scale">
+            <option value="pent">פנטטוני — רך</option>
+            <option value="major">מז׳ורי — בהיר</option>
+            <option value="minor">מינורי — עמוק</option>
+            <option value="dorian">דוריאני — נוגה-חמים</option>
+            <option value="chromatic">כרומטי — נאמן לדאטה</option>
+          </select>
+        </div>
+        <div class="field" title="הצליל שסביבו כל השכבות מסתדרות. משנה את הצבע הרגשי בלי לגעת בנתונים.">
+          <label for="root">טוניקה</label>
+          <select id="root">
+            <option value="0">דו</option><option value="2">רה</option>
+            <option value="4">מי</option><option value="5">פה</option>
+            <option value="7" selected>סול</option><option value="9">לה</option>
+            <option value="11">סי</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>השכבות</h3>
+      <p class="help" style="margin-bottom:var(--s3)">כל שכבה יכולה לשאוב מעמודה אחרת בדאטה.
+        כאן נמצא החופש: אותם מספרים נשמעים אחרת לגמרי כשהם מנהלים את הביס במקום את המנגינה.
+        כבו שכבה כדי לשמוע מה היא תרמה.</p>
+      <div class="layers" id="layers"></div>
+    </div>
+
+    <div class="panel">
+      <h3>מתקדם</h3>
+      <div class="advgrid">
+        <div class="field" title="מרכך דאטה מחוספס. 0 = נאמן למקור.">
+          <label for="smooth">החלקת המנגינה: <span id="smoothV">0</span></label>
+          <input type="range" id="smooth" min="0" max="12" value="0" step="1">
+          <p class="help">מוציא את המגמה מתוך הרעש. שימושי כשהדאטה קופצני והמנגינה נשמעת מבולגנת.</p>
+        </div>
+        <div class="field" title="מעל 1 — הצלילים נשפכים זה לזה.">
+          <label for="legato">אורך צליל: <span id="legatoV">1.6</span>×</label>
+          <input type="range" id="legato" min="0.4" max="3" value="1.6" step="0.1">
+          <p class="help">קצר — כל נקודה נפרדת ומנוקדת. ארוך — הצלילים חופפים ונוצר רצף אחד זורם.</p>
+        </div>
+        <div class="field" title="נמוך = קצב צפוף. גבוה = רק קפיצות חדות.">
+          <label for="thresh">סף חבטה בקצב: <span id="threshV">0.25</span></label>
+          <input type="range" id="thresh" min="0.05" max="0.9" value="0.25" step="0.05">
+          <p class="help">כמה חד צריך שינוי כדי לזכות בחבטה. העלו כדי לשמוע רק את נקודות המפנה הגדולות.</p>
+        </div>
+      </div>
+    </div>
+  </aside>
+
   <!-- ===================== האדריכלות ===================== -->
   <section class="archcol">
-    <div class="archhead">
-      <h3>האדריכלות — אותם נתונים כמקום</h3>
+    <div class="colhead">
+      <h3>המרחב — אותם נתונים כמקום</h3>
       <div class="seg" role="tablist" aria-label="מקור התמונה">
         <button type="button" class="segb on" id="tabGen" role="tab" aria-selected="true">נוצר מהנתונים</button>
         <button type="button" class="segb" id="tabOwn" role="tab" aria-selected="false">התמונה שלי</button>
       </div>
     </div>
 
-    <div class="archbody">
       <!-- מסגרת התמונה -->
       <div class="archframe" id="archFrame">
         <svg id="arch" viewBox="0 0 520 340" role="img" aria-labelledby="archDesc"></svg>
@@ -436,7 +536,23 @@
         </div>
       </div>
 
-      <!-- המכוונים האדריכליים, צמודים למסגרת -->
+    <div class="colfoot">
+      <p class="ip read" id="archReadWrap"><span class="ik">מה רואים</span><span id="archRead"></span></p>
+      <div class="exportbar archexp">
+        <span class="exlabel">ייצוא</span>
+        <button class="btn sm ghost" id="archPng" disabled>PNG</button>
+        <button class="btn sm ghost" id="archSvg" disabled>SVG</button>
+        <button class="btn sm ghost" id="archCopy" disabled title="מעתיק תיאור מילולי של השרטוט — לשימוש כפרומפט להמחשה או כטקסט למצגת.">העתק תיאור</button>
+        <span class="status" id="archStatus"></span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ מכווני המרחב (משמאל לשרטוט) ============ -->
+  <aside class="archctlcol">
+    <div class="ctlhead"><span class="dot"></span>מכווני המרחב</div>
+    <div class="panel">
+      <h3>השרטוט</h3>
       <div class="archctl" id="archCtl">
         <div class="field">
           <label for="archType">טיפולוגיה</label>
@@ -469,49 +585,8 @@
         </div>
         <p class="help">אותה סדרת מספרים שמנהלת את המנגינה מנהלת גם את הגבהים, המקצב
           והמסה. שינוי טיפולוגיה הוא שינוי <em>שאלה</em>: מה הנתונים האלה, מבנה או קרקע?</p>
-        <div class="exportbar archexp">
-          <button class="btn sm ghost" id="archPng" disabled>PNG</button>
-          <button class="btn sm ghost" id="archSvg" disabled>SVG</button>
-          <button class="btn sm ghost" id="archCopy" disabled title="מעתיק תיאור מילולי של השרטוט — לשימוש כפרומפט להמחשה או כטקסט למצגת.">העתק תיאור</button>
-        </div>
-        <div class="status" id="archStatus"></div>
       </div>
     </div>
-
-    <p class="ip read" id="archReadWrap"><span class="ik">מה רואים</span><span id="archRead"></span></p>
-  </section>
-
-  <!-- ===================== המכוונים ===================== -->
-  <aside class="mixercol">
-    <div class="panel">
-      <h3>המכוונים</h3>
-      <p class="help" style="margin-bottom:var(--s3)">כל שכבה יכולה לשאוב מעמודה אחרת בדאטה.
-        כאן נמצא החופש: אותם מספרים נשמעים אחרת לגמרי כשהם מנהלים את הביס במקום את המנגינה.
-        כבו שכבה כדי לשמוע מה היא תרמה.</p>
-      <div class="layers" id="layers"></div>
-    </div>
-
-    <div class="panel">
-      <h3>מתקדם</h3>
-      <div class="advgrid">
-        <div class="field" title="מרכך דאטה מחוספס. 0 = נאמן למקור.">
-          <label for="smooth">החלקת המנגינה: <span id="smoothV">0</span></label>
-          <input type="range" id="smooth" min="0" max="12" value="0" step="1">
-          <p class="help">מוציא את המגמה מתוך הרעש. שימושי כשהדאטה קופצני והמנגינה נשמעת מבולגנת.</p>
-        </div>
-        <div class="field" title="מעל 1 — הצלילים נשפכים זה לזה.">
-          <label for="legato">אורך צליל: <span id="legatoV">1.6</span>×</label>
-          <input type="range" id="legato" min="0.4" max="3" value="1.6" step="0.1">
-          <p class="help">קצר — כל נקודה נפרדת ומנוקדת. ארוך — הצלילים חופפים ונוצר רצף אחד זורם.</p>
-        </div>
-        <div class="field" title="נמוך = קצב צפוף. גבוה = רק קפיצות חדות.">
-          <label for="thresh">סף חבטה בקצב: <span id="threshV">0.25</span></label>
-          <input type="range" id="thresh" min="0.05" max="0.9" value="0.25" step="0.05">
-          <p class="help">כמה חד צריך שינוי כדי לזכות בחבטה. העלו כדי לשמוע רק את נקודות המפנה הגדולות.</p>
-        </div>
-      </div>
-    </div>
-
   </aside>
 
   <!-- ===================== רציף: טעינה + ספרייה ===================== -->
@@ -1891,6 +1966,7 @@ function loadFromLibrary(id){
 function deleteFromLibrary(id, title){
   if(!confirm(`למחוק את "${title}" מהספרייה?`)) return;
   libWrite(libRead().filter(x=>x.id!==id));
+  imgDel('user:'+id);                    // בלי זה התמונה נשארת תופסת מקום בלי כרטיסייה
   if(activeId==='user:'+id) activeId=null;
   renderLibrary();
   setStatus(`"${title}" נמחק מהספרייה.`,'');
@@ -1902,19 +1978,87 @@ function markActive(id){
     c.classList.toggle('active', c.dataset.id===id));
 }
 
+/* ---------- תמונה לכל כרטיסייה בספרייה ----------
+   אותה תמונה שנשמרת כאן היא "התמונה שלי" של המאגר במסגרת האדריכלית — מפתח אחד,
+   שני מקומות תצוגה. כך אין שתי אמיתות לאותו מאגר.                              */
+function buildThumb(id, title){
+  const t=document.createElement('label');
+  t.className='thumb'; t.title='הוספה או החלפה של תמונה למאגר "'+title+'"';
+  const url=imgGet(id);
+
+  const inp=document.createElement('input');
+  inp.type='file'; inp.accept='image/*'; inp.hidden=true;
+  inp.addEventListener('click', ev=>ev.stopPropagation());     // בלי זה הלחיצה גם מנגנת
+  inp.addEventListener('change', ev=>{
+    const f=ev.target.files && ev.target.files[0];
+    if(f) setChipImage(id, f);
+    ev.target.value='';
+  });
+  t.appendChild(inp);
+
+  if(url){
+    t.classList.add('has');
+    const im=document.createElement('img');
+    im.src=url; im.alt='התמונה שנשמרה למאגר '+title;
+    t.appendChild(im);
+    const x=document.createElement('button');
+    x.type='button'; x.className='tx'; x.textContent='×';
+    x.title='הסרת התמונה'; x.setAttribute('aria-label','הסר תמונה מ'+title);
+    x.addEventListener('click', ev=>{
+      ev.stopPropagation(); ev.preventDefault();
+      imgDel(id);
+      if(activeId===id) showOwnImage();
+      renderLibrary();
+    });
+    t.appendChild(x);
+  }else{
+    t.appendChild(document.createTextNode('＋'));
+  }
+
+  t.addEventListener('click', ev=>ev.stopPropagation());       // התמונה היא פעולה נפרדת מהנגינה
+  t.addEventListener('dragover', ev=>{ ev.preventDefault(); ev.stopPropagation(); t.classList.add('over'); });
+  t.addEventListener('dragleave', ()=>t.classList.remove('over'));
+  t.addEventListener('drop', ev=>{
+    ev.preventDefault(); ev.stopPropagation(); t.classList.remove('over');
+    const f=ev.dataTransfer.files && ev.dataTransfer.files[0];
+    if(f) setChipImage(id, f);
+  });
+  return t;
+}
+
+async function setChipImage(id, file){
+  if(!file || !/^image\//.test(file.type)){ libNote('זה לא קובץ תמונה.','err'); return; }
+  try{
+    const url = await shrinkImage(file);
+    if(!imgPut(id, url)){
+      libNote('אין מקום באחסון הדפדפן. הסירו תמונה אחרת ונסו שוב.','err'); return;
+    }
+    if(activeId===id) showOwnImage();
+    renderLibrary();
+    libNote('התמונה נשמרה לכרטיסייה.','ok');
+  }catch(e){ libNote('לא הצלחתי לקרוא את התמונה.','err'); }
+}
+const libNote=(m,c)=>{ const e=$('libNote'); e.textContent=m; e.className='status'+(c?' '+c:''); };
+
 function renderLibrary(){
   const wrap = $('library');
   const mine = libRead();
   wrap.innerHTML = '';
 
   const chip = (id, title, source, badge, isMine, onClick, onDelete) => {
-    const b=document.createElement('button');
-    b.type='button'; b.className='chip'+(isMine?' mine':'')+(activeId===id?' active':'');
+    const b=document.createElement('div');
+    b.className='chip'+(isMine?' mine':'')+(activeId===id?' active':'');
     b.dataset.id=id;
-    b.innerHTML = `<span class="ct"></span><span class="cs"></span><span class="cb">${badge}</span>`;
+    b.setAttribute('role','button'); b.tabIndex=0;
+    b.innerHTML = `<span class="ctext"><span class="ct"></span><span class="cs"></span>` +
+                  `<span class="cb">${badge}</span></span>`;
     b.querySelector('.ct').textContent = title;                 // textContent — התוכן מגיע מקבצי המשתמשת
     b.querySelector('.cs').textContent = source || '';
+    b.insertBefore(buildThumb(id, title), b.firstChild);        // התמונה ליד השם
     b.addEventListener('click', onClick);
+    b.addEventListener('keydown', ev=>{
+      if(ev.key==='Enter'||ev.key===' '){ ev.preventDefault(); onClick(); }
+    });
     if(onDelete){
       const d=document.createElement('button');
       d.type='button'; d.className='del'; d.textContent='×';
@@ -1931,11 +2075,11 @@ function renderLibrary(){
     `${e.columns.filter(c=>c.numeric).length} עמודות · ${e.columns[0].values.length} נקודות · נשמר ${e.savedAt}`,
     'שלי', true, ()=>loadFromLibrary(e.id), ()=>deleteFromLibrary(e.id, e.title)));
 
-  $('libNote').textContent = storageAvailable
+  libNote(storageAvailable
     ? (mine.length
         ? `${mine.length} מאגרים שלך נשמרים בדפדפן הזה. גררו כמה קבצים יחד כדי להוסיף עוד.`
         : 'טענו קובץ או הדביקו טבלה, תנו שם ולחצו "שמור בספרייה" — והוא יופיע כאן. אפשר לגרור כמה קבצים בבת אחת.')
-    : 'האחסון המקומי חסום בהקשר הזה, ולכן אי אפשר לשמור מאגרים. פתחו את הקובץ ישירות בדפדפן כדי שהספרייה תעבוד.';
+    : 'האחסון המקומי חסום בהקשר הזה, ולכן אי אפשר לשמור מאגרים. פתחו את הקובץ ישירות בדפדפן כדי שהספרייה תעבוד.', '');
 }
 
 /* ==========================================================================
@@ -1982,6 +2126,7 @@ async function acceptArchImage(file){
       archStatus('אין מקום באחסון הדפדפן. הסירו תמונה אחרת ונסו שוב.','err'); return;
     }
     showOwnImage();
+    renderLibrary();                     // הכרטיסייה בספרייה מציגה את אותה תמונה
     archStatus('התמונה נשמרה למאגר הזה.','ok');
   }catch(e){ archStatus('לא הצלחתי לקרוא את התמונה.','err'); }
 }
@@ -2096,7 +2241,7 @@ archFile.addEventListener('change',e=>{ acceptArchImage(e.target.files[0]); e.ta
 ownEmpty.addEventListener('drop',e=>acceptArchImage(e.dataTransfer.files[0]));
 $('ownClear').addEventListener('click',()=>{
   if(!activeId || !confirm('להסיר את התמונה השמורה למאגר הזה?')) return;
-  imgDel(activeId); showOwnImage(); archStatus('התמונה הוסרה.','');
+  imgDel(activeId); showOwnImage(); renderLibrary(); archStatus('התמונה הוסרה.','');
 });
 
 $('archPng').addEventListener('click',()=>pngFrom(archSvg,AW,AH,fileBase()+'-אדריכלות.png',archStatus));
