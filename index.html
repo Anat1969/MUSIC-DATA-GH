@@ -51,18 +51,25 @@
    ========================================================================== */
   .app{display:flex;flex-direction:column;gap:var(--s3);padding:var(--s3)}
 
-  @media(min-width:1000px) and (min-height:620px){
+  /* שלוש עמודות: הזמן (גרף), המקום (אדריכלות), והמכוונים המוזיקליים.
+     שתי הקריאות של אותם נתונים עומדות זו לצד זו, גלויות בו-זמנית. */
+  @media(min-width:1240px) and (min-height:620px){
     html,body{height:100%;overflow:hidden}
     .app{
       height:100dvh;padding:var(--s3);gap:var(--s3);
       display:grid;grid-template-rows:var(--topbar) minmax(0,1fr) auto;
-      grid-template-columns:minmax(0,1fr) 372px;
-      grid-template-areas:"top top" "stage mixer" "rail rail";
+      grid-template-columns:minmax(0,1fr) minmax(0,1fr) 340px;
+      grid-template-areas:"top top top" "stage arch mixer" "rail rail rail";
     }
     .topbar{grid-area:top}
     .stagecol{grid-area:stage;min-height:0}
+    .archcol{grid-area:arch;min-height:0}
     .mixercol{grid-area:mixer;min-height:0}
     .rail{grid-area:rail}
+  }
+  /* מתחת לרוחב הזה אין מספיק מקום לשלוש עמודות — חוזרים לזרימה עם גלילה */
+  @media(max-width:1239px){
+    .archframe{min-height:240px}
   }
 
 /* ---------- סרגל עליון: זהות, נגינה, ופקדים גלובליים ---------- */
@@ -128,6 +135,59 @@
   .ip.story .ik{border-color:var(--teal)}
   .ip.listen .ik{border-color:var(--gold);color:var(--gold)}
   .ip.src{font-size:.75rem;color:var(--dim)}
+
+/* ---------- עמודת האדריכלות ---------- */
+  .archcol{display:flex;flex-direction:column;gap:var(--s2);min-width:0}
+  .archhead{display:flex;align-items:center;gap:var(--s3);flex-wrap:wrap}
+  .archhead h3{font-size:.72rem;letter-spacing:.06em;font-weight:700;color:var(--dim);
+    white-space:nowrap;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
+  .seg{display:flex;border:1px solid var(--line);border-radius:5px;overflow:hidden;flex:none}
+  .segb{
+    font-family:inherit;font-size:.72rem;padding:4px 10px;cursor:pointer;
+    background:transparent;color:var(--dim);border:none;
+  }
+  .segb.on{background:var(--panel3);color:var(--ink);font-weight:600}
+  .segb:hover:not(.on){color:var(--ink)}
+
+  /* המסגרת והמכוונים זה לצד זה — מכווננים תוך כדי הסתכלות בשרטוט */
+  .archbody{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 176px;gap:var(--s2)}
+  .archframe{
+    position:relative;min-height:0;
+    background:var(--panel2);border:1px solid var(--line);border-radius:var(--r);
+    padding:var(--s2);display:flex;align-items:center;justify-content:center;overflow:hidden;
+  }
+  svg#arch{display:block;width:100%;height:auto;max-height:100%}
+  .ownwrap{position:absolute;inset:var(--s2);display:flex;align-items:center;justify-content:center}
+  .ownwrap[hidden]{display:none}
+  #ownImg{max-width:100%;max-height:100%;object-fit:contain;border-radius:4px;display:none}
+  #ownImg.has{display:block}
+  .ownempty{
+    border:1.5px dashed var(--line);border-radius:5px;padding:var(--s5) var(--s4);
+    text-align:center;color:var(--dim);cursor:pointer;font-size:.8rem;line-height:1.6;
+    transition:border-color .15s,background .15s;
+  }
+  .ownempty:hover,.ownempty.over{border-color:var(--gold);background:rgba(214,162,78,.06);color:var(--ink)}
+  .ownempty[hidden]{display:none}
+  .ownclear{position:absolute;bottom:0;inset-inline-end:0}
+  .ownclear[hidden]{display:none}
+
+  .archctl{
+    background:var(--panel);border:1px solid var(--line);border-radius:var(--r);
+    padding:var(--s2) 10px;display:flex;flex-direction:column;gap:7px;overflow:auto;
+  }
+  .archctl .field{display:grid;gap:3px}
+  .archctl label{font-size:.72rem;color:var(--dim)}
+  .archctl select{
+    width:100%;min-width:0;padding:4px 6px;font-size:.73rem;font-family:inherit;
+    background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:4px;
+  }
+  .archctl input[type=range]{width:100%;accent-color:var(--rose);height:14px;margin:0}
+  .archexp{margin-top:auto;padding-top:var(--s2);border-top:1px solid var(--line)}
+  .archexp .btn{padding:4px 9px;font-size:.72rem}
+  .ip.read{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);
+    padding:var(--s2) var(--s3);font-size:.8rem}
+  .ip.read .ik{border-color:var(--rose);color:var(--rose)}
+  .ip.read[hidden]{display:none}
 
 /* ---------- עמודת המכוונים ---------- */
   .mixercol{display:flex;flex-direction:column;gap:var(--s3);overflow:auto;min-width:0}
@@ -351,6 +411,76 @@
     </div>
   </main>
 
+  <!-- ===================== האדריכלות ===================== -->
+  <section class="archcol">
+    <div class="archhead">
+      <h3>האדריכלות — אותם נתונים כמקום</h3>
+      <div class="seg" role="tablist" aria-label="מקור התמונה">
+        <button type="button" class="segb on" id="tabGen" role="tab" aria-selected="true">נוצר מהנתונים</button>
+        <button type="button" class="segb" id="tabOwn" role="tab" aria-selected="false">התמונה שלי</button>
+      </div>
+    </div>
+
+    <div class="archbody">
+      <!-- מסגרת התמונה -->
+      <div class="archframe" id="archFrame">
+        <svg id="arch" viewBox="0 0 520 340" role="img" aria-labelledby="archDesc"></svg>
+        <span class="sr" id="archDesc">שרטוט אדריכלי שנגזר מהנתונים הנטענים.</span>
+        <div class="ownwrap" id="ownWrap" hidden>
+          <img id="ownImg" alt="הפרשנות האדריכלית שנשמרה למאגר הזה">
+          <label class="ownempty" id="ownEmpty">
+            גררו לכאן תמונה — או לחצו לבחירה
+            <input type="file" id="archFile" accept="image/*" hidden>
+          </label>
+          <button class="btn sm ghost ownclear" id="ownClear" hidden>הסר תמונה</button>
+        </div>
+      </div>
+
+      <!-- המכוונים האדריכליים, צמודים למסגרת -->
+      <div class="archctl" id="archCtl">
+        <div class="field">
+          <label for="archType">טיפולוגיה</label>
+          <select id="archType">
+            <option value="elevation">חזית — כל נקודה היא מבנה</option>
+            <option value="section">חתך — הנתונים הם הקרקע</option>
+            <option value="colonnade">קולונדה — המקצב כעמודים</option>
+            <option value="stack">מסה — הרצף נערם לגובה</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="archBays">מקצב: <span id="archBaysV">28</span> יחידות</label>
+          <input type="range" id="archBays" min="6" max="64" value="28" step="1">
+        </div>
+        <div class="field">
+          <label for="archProp">פרופורציה: <span id="archPropV">1.0</span>×</label>
+          <input type="range" id="archProp" min="0.3" max="1.8" value="1" step="0.05">
+        </div>
+        <div class="field">
+          <label for="archDepth">עומק: <span id="archDepthV">1</span> שכבות</label>
+          <input type="range" id="archDepth" min="0" max="3" value="1" step="1">
+        </div>
+        <div class="field">
+          <label for="archFill">גימור</label>
+          <select id="archFill">
+            <option value="line">קו — שרטוט</option>
+            <option value="solid" selected>מלא — מסה</option>
+            <option value="hatch">הצללה — טקסטורה</option>
+          </select>
+        </div>
+        <p class="help">אותה סדרת מספרים שמנהלת את המנגינה מנהלת גם את הגבהים, המקצב
+          והמסה. שינוי טיפולוגיה הוא שינוי <em>שאלה</em>: מה הנתונים האלה, מבנה או קרקע?</p>
+        <div class="exportbar archexp">
+          <button class="btn sm ghost" id="archPng" disabled>PNG</button>
+          <button class="btn sm ghost" id="archSvg" disabled>SVG</button>
+          <button class="btn sm ghost" id="archCopy" disabled title="מעתיק תיאור מילולי של השרטוט — לשימוש כפרומפט להמחשה או כטקסט למצגת.">העתק תיאור</button>
+        </div>
+        <div class="status" id="archStatus"></div>
+      </div>
+    </div>
+
+    <p class="ip read" id="archReadWrap"><span class="ik">מה רואים</span><span id="archRead"></span></p>
+  </section>
+
   <!-- ===================== המכוונים ===================== -->
   <aside class="mixercol">
     <div class="panel">
@@ -448,49 +578,49 @@ const SAMPLE_NOTES = {
     short:'הקרקע עולה מהמים אל הרכס, צונחת לשקע, ואז מטפסת בלי לחזור.',
     story:'חתך גובה ממערב למזרח: קו המים, רכס הכורכר שחוסם אותו, השקע שמאחוריו, ומשם עלייה מתמדת אל השפלה. זו הצורה שקובעת איפה העיר יכולה הייתה להיבנות.',
     listen:'שלוש תנועות: טיפוס ראשון אל הרכס, נפילה קצרה, ואז עלייה ארוכה שלא נעצרת. הצליל הגבוה ביותר הוא הסוף, לא האמצע — וזה בדיוק ההבדל בין רכס לבין מדרון.',
-    preset:{scale:'pent', mel:'harp', har:'pad', bas:'pad', per:'shaker', duration:26}
+    preset:{scale:'pent', mel:'harp', har:'pad', bas:'pad', per:'shaker', duration:26, archType:'section', archBays:40}
   },
   '02_density_transect':{
     short:'צפיפות שמתפוצצת במרכז ונרגעת אל הפאתר — קשת סימטרית.',
     story:'נפש לדונם לאורך חתך: פאתר → מרכז → פאתר. העלייה תלולה והירידה מתונה, וזה הסיפור — מרכז נבנה מהר יותר משהוא מתפוגג.',
     listen:'קשת אחת גדולה. הפסגה מגיעה קצת אחרי האמצע, ולכן הירידה ארוכה מהעלייה. הדרון מתחת מחזיק את המרכז גם כשהמנגינה כבר יורדת.',
-    preset:{scale:'dorian', mel:'piano', har:'choir', bas:'drone', per:'shaker', duration:22}
+    preset:{scale:'dorian', mel:'piano', har:'choir', bas:'drone', per:'shaker', duration:22, archType:'elevation', archBays:32}
   },
   '03_daily_traffic':{
     short:'יום שלם בצומת: שני שיאים, בוקר וערב, כמעט זהים.',
     story:'נפח תנועה לפי שעה, מחצות לחצות. שני גלים חדים — יציאה לעבודה וחזרה — ובין שניהם שקע צהריים.',
     listen:'המוטיב חוזר פעמיים כמעט זהה: היום מתחרז עם עצמו. שכבת הקצב מתפוצצת בדיוק בשתי הנקודות שבהן העומס נבנה ומתפרק — האוזן שומעת את שעות הפקק לפני שהעין קוראת את התוויות.',
-    preset:{scale:'minor', mel:'marimba', har:'pad', bas:'upright', per:'kit', duration:16}
+    preset:{scale:'minor', mel:'marimba', har:'pad', bas:'upright', per:'kit', duration:16, archType:'colonnade', archBays:24}
   },
   '04_skyline_street':{
     short:'קו רקיע קופצני — מבנה נמוך, מגדל, נמוך שוב.',
     story:'מספר קומות לאורך רחוב. אין כאן מגמה, יש שכנות: כל מספר הוא בניין אחר, וההפרש בין שכנים הוא בדיוק מה שמרגישים כשהולכים ברחוב.',
     listen:'המאגר הכי "מקוטע" בסט. אין קו מוביל אלא קפיצות, ולכן שכבת הקצב עובדת קשה — כל מגדל הוא חבטה. פעמוני הזכוכית הופכים כל קפיצה לנקודה בודדת במקום לקו רציף.',
-    preset:{scale:'pent', mel:'glass', har:'pad', bas:'pad', per:'wood', duration:20}
+    preset:{scale:'pent', mel:'glass', har:'pad', bas:'pad', per:'wood', duration:20, archType:'elevation', archBays:40}
   },
   '05_population_growth':{
     short:'ארבעים שנות גדילה — עלייה שכמעט לא נעצרת.',
     story:'אלפי תושבים, שנה אחר שנה. אין דרמה ואין שיא: יש כיוון אחד, ובשליש האחרון הוא נעשה תלול יותר.',
     listen:'המנגינה כמעט לא יורדת לאורך 34 שניות — חוויה נדירה, כי רוב הדאטה מתנדנד. הקצב דליל, כי אין כאן נקודות מפנה אמיתיות אלא רק תנודות קטנות סביב הכיוון. שימו לב להאצה בשליש האחרון: אותם צעדים בזמן, אבל מרווחים גדולים יותר בגובה.',
-    preset:{scale:'major', mel:'choir', har:'harp', bas:'cello', per:'shaker', duration:34}
+    preset:{scale:'major', mel:'choir', har:'harp', bas:'cello', per:'shaker', duration:34, archType:'stack', archBays:40}
   },
   '06_green_transect':{
     short:'יוצאים מרחוב אפור, נכנסים ללב פארק, וחוזרים.',
     story:'אחוז כיסוי ירוק לאורך חתך. הקצוות נמוכים ורועשים, המרכז רחב וגבוה — הפארק לא מתחיל בגדר אלא נבנה בהדרגה.',
     listen:'המאגר הכי "נושם" בסט. הרעש הקטן בקצוות הופך לתנודות עדינות, והמרכז הוא רמה גבוהה ומוחזקת. אם תאריכו את המסע ל-40 שניות זה נשמע כמו כניסה איטית לצל.',
-    preset:{scale:'pent', mel:'voxOo', har:'pad', bas:'pad', per:'shaker', duration:30}
+    preset:{scale:'pent', mel:'voxOo', har:'pad', bas:'pad', per:'shaker', duration:30, archType:'section', archBays:44}
   },
   '07_air_quality':{
     short:'מתח סביבתי שעולה בדיוק כשהעיר זזה.',
     story:'ריכוז חלקיקים לפי שעה. אותה צורה של יום התנועה — אבל דחוסה יותר, כי האוויר מתנקה לאט מכפי שהוא מזדהם.',
     listen:'השוו את זה ל"נפח תנועה": אותם שני שיאים, אבל כאן הירידה איטית מהעלייה. הצ׳לו מחזיק את המתח גם אחרי שהשיא עבר — וזה בדיוק ההבדל בין פקק שנגמר לבין אוויר שנשאר.',
-    preset:{scale:'minor', mel:'cello', har:'choir', bas:'drone', per:'wood', duration:18}
+    preset:{scale:'minor', mel:'cello', har:'choir', bas:'drone', per:'wood', duration:18, archType:'colonnade', archBays:24}
   },
   '08_lachish_crosssection':{
     short:'שתי גדות ואפיק אחד — צלילה חדה באמצע.',
     story:'גובה הקרקע לרוחב נחל לכיש, מגדה לגדה. הגדות כמעט שטוחות, והאפיק חותך ביניהן — עמק צר בתוך מישור.',
     listen:'ההיפך מכל השאר: כאן השיא הוא למטה. שני מישורים גבוהים ובאמצע נפילה חדה וחזרה. עם נבל, הצלילה נשמעת כמו מפל — ואז המים חוזרים לגובה.',
-    preset:{scale:'dorian', mel:'harp', har:'choir', bas:'choir', per:'shaker', duration:24}
+    preset:{scale:'dorian', mel:'harp', har:'choir', bas:'choir', per:'shaker', duration:24, archType:'section', archBays:50}
   }
 };
 
@@ -1013,14 +1143,17 @@ function download(blob, name){
 }
 
 const NS='http://www.w3.org/2000/svg';
-function svgString(){
-  const clone = svg.cloneNode(true);
+/** מסדר SVG לקובץ עצמאי: מידות מפורשות, רקע אטום, בלי הסמן החי. */
+function svgString(el, w, h){
+  el = el || svg; w = w || VW; h = h || VH;
+  const clone = el.cloneNode(true);
   clone.setAttribute('xmlns',NS);
-  clone.setAttribute('width',VW); clone.setAttribute('height',VH);
+  clone.setAttribute('width',w); clone.setAttribute('height',h);
+  clone.removeAttribute('style');
   clone.querySelectorAll('[data-cursor]').forEach(e=>e.remove());
   const cs = getComputedStyle(document.documentElement);
   const bg = document.createElementNS(NS,'rect');
-  bg.setAttribute('width',VW); bg.setAttribute('height',VH);
+  bg.setAttribute('width',w); bg.setAttribute('height',h);
   bg.setAttribute('fill', cs.getPropertyValue('--panel2').trim() || '#1b262d');
   clone.insertBefore(bg, clone.firstChild);
   return new XMLSerializer().serializeToString(clone);
@@ -1129,6 +1262,190 @@ function hideCursor(){
 }
 
 /* ==========================================================================
+   05-LOGIC · E — הקריאה האדריכלית.
+   אותה סדרת מספרים, מדיום אחר. המוזיקה קוראת אותה כזמן; כאן היא נקראת כמקום.
+   הטיפולוגיה היא השאלה שמפנים לנתונים: האם הם מבנה, קרקע, מקצב, או ערימה.
+   ========================================================================== */
+const AW=520, AH=340, AP={t:22,r:20,b:34,l:20};
+const archSvg = document.getElementById('arch');
+
+/** מדגם מחדש למספר יחידות מבוקש, ומנרמל 0..1. */
+function archSeries(bays){
+  const s = seriesFor($('src_mel').value, +$('smooth').value) ||
+            (DATA ? DATA.columns.find(c=>c.numeric).values : null);
+  if(!s || !s.length) return null;
+  const r = s.length === bays ? s.slice() : resample(s, bays, true);
+  return {raw:r, norm:normOf(r)};
+}
+
+function ael(tag, attrs){
+  const e=document.createElementNS(NS,tag);
+  for(const k in attrs) e.setAttribute(k, attrs[k]);
+  return e;
+}
+
+/** מילוי לפי הגימור שנבחר — קו, מסה, או הצללה. */
+function archSkin(fill, color, i){
+  if(fill==='line')  return {fill:'none', 'fill-opacity':0, stroke:color, 'stroke-width':1.2};
+  if(fill==='hatch') return {fill:'url(#ahatch)', stroke:color, 'stroke-width':.9};
+  return {fill:color, 'fill-opacity':(0.20 + 0.10*((i%3))).toFixed(2), stroke:color, 'stroke-width':1};
+}
+
+function drawArch(){
+  archSvg.innerHTML='';
+  const canDraw = !!DATA;
+  ['archPng','archSvg','archCopy'].forEach(id=>{ const b=$(id); if(b) b.disabled=!canDraw; });
+  if(!canDraw){ $('archRead').textContent=''; $('archReadWrap').hidden=true; return; }
+
+  const type  = $('archType').value;
+  const bays  = +$('archBays').value;
+  const prop  = +$('archProp').value;
+  const depth = +$('archDepth').value;
+  const fill  = $('archFill').value;
+
+  const S = archSeries(bays);
+  if(!S) return;
+
+  // הגדרות משותפות: הצללה, וקרקע
+  const defs = ael('defs',{});
+  const hatch = ael('pattern',{id:'ahatch',width:6,height:6,patternUnits:'userSpaceOnUse',
+    patternTransform:'rotate(45)'});
+  hatch.appendChild(ael('line',{x1:0,y1:0,x2:0,y2:6,stroke:css('--rose'),'stroke-width':1,'stroke-opacity':.5}));
+  defs.appendChild(hatch); archSvg.appendChild(defs);
+
+  const x0=AP.l, x1=AW-AP.r, y0=AP.t, y1=AH-AP.b;
+  const W=x1-x0, H=y1-y0;
+  const rose=css('--rose'), teal=css('--teal'), dim=css('--dim'), gold=css('--gold');
+
+  // שכבות עומק — עותקים נסוגים שנותנים מרחב, לא רק אפקט
+  for(let d=depth; d>=1; d--){
+    const off=d*9, fade=(0.30/d).toFixed(2);
+    drawArchBody(type, S, {x0:x0+off, x1:x1+off, y0:y0-off*0.5, y1:y1-off*0.5,
+      W, H, prop, fill:'solid', color:teal, opacity:fade, ghost:true});
+  }
+  drawArchBody(type, S, {x0,x1,y0,y1,W,H,prop,fill,color:rose,opacity:1,ghost:false});
+
+  // קו אופק — הקרקע שעליה הכול עומד
+  archSvg.appendChild(ael('line',{x1:x0-6,y1:y1,x2:x1+6,y2:y1,
+    stroke:dim,'stroke-width':1,'stroke-opacity':.55}));
+
+  // סרגל: מה מייצג הגובה
+  const FONT='Assistant, system-ui, sans-serif';
+  const lab = ael('text',{x:x0,y:AH-12,fill:dim,'font-size':10,'font-family':FONT,direction:'rtl'});
+  lab.textContent = `${bays} יחידות · ${DATA.columns.find(c=>c.numeric).name}`;
+  archSvg.appendChild(lab);
+
+  writeArchReading(type, S, bays);
+}
+
+/** גוף השרטוט. אותה חתימה לכל הטיפולוגיות, כדי ששכבות העומק יעבדו לכולן. */
+function drawArchBody(type, S, g){
+  const n=S.norm.length, bw=g.W/n;
+  const put=(tag,attrs)=>{
+    const e=ael(tag,attrs);
+    if(g.opacity<1) e.setAttribute('opacity',g.opacity);
+    archSvg.appendChild(e); return e;
+  };
+
+  if(type==='elevation'){
+    // כל נקודה היא מבנה. הערך הוא הגובה, והרוחב אחיד — מקצב עירוני.
+    S.norm.forEach((v,i)=>{
+      const h=Math.max(4, v*g.H*g.prop);
+      const x=g.x0+i*bw, y=g.y1-h;
+      put('rect',{x:x+bw*0.12,y,width:Math.max(1,bw*0.76),height:h,
+        ...archSkin(g.fill,g.color,i)});
+      if(!g.ghost && g.fill!=='line' && h>26 && bw>7){
+        // פתחים — רק כשיש מקום אמיתי, אחרת זה רעש
+        const rows=Math.floor(h/13), cols=Math.max(1,Math.floor(bw*0.76/7));
+        for(let r=0;r<rows;r++) for(let c=0;c<cols;c++)
+          put('rect',{x:x+bw*0.12+3+c*7, y:y+6+r*13, width:3, height:5,
+            fill:'#0e1418','fill-opacity':.55,stroke:'none'});
+      }
+    });
+  }
+
+  else if(type==='section'){
+    // הנתונים הם קו הקרקע. המבנה יושב עליה ומגיב לה.
+    let d=`M ${g.x0} ${g.y1}`;
+    S.norm.forEach((v,i)=>{ d+=` L ${(g.x0+i*bw+bw/2).toFixed(1)} ${(g.y1-v*g.H*0.55*g.prop).toFixed(1)}`; });
+    d+=` L ${g.x1} ${g.y1} Z`;
+    put('path',{d,fill:g.fill==='line'?'none':'url(#ahatch)',stroke:g.color,'stroke-width':1.3});
+    if(g.ghost) return;
+    // נפחים בנויים על הקרקע, גובהם לפי חדות השינוי המקומי
+    for(let i=1;i<n-1;i++){
+      const slope=Math.abs(S.norm[i+1]-S.norm[i-1]);
+      const h=(0.10+slope*1.5)*g.H*0.5*g.prop;
+      if(h<6 || i%2) continue;
+      const gy=g.y1-S.norm[i]*g.H*0.55*g.prop;
+      put('rect',{x:g.x0+i*bw+bw*0.15,y:gy-h,width:Math.max(1.5,bw*0.7),height:h,
+        ...archSkin(g.fill,g.color,i)});
+    }
+  }
+
+  else if(type==='colonnade'){
+    // המקצב הופך לעמודים: הערך קובע גובה, והקורה מעליהם עוקבת אחריו.
+    const cap=g.y0+6;
+    let beam=`M ${g.x0} ${cap}`;
+    S.norm.forEach((v,i)=>{
+      const h=Math.max(10, (0.35+v*0.65)*g.H*g.prop);
+      const cx=g.x0+i*bw+bw/2, top=g.y1-h;
+      const cw=Math.max(1.6, Math.min(bw*0.34, 9));
+      put('rect',{x:cx-cw/2,y:top,width:cw,height:h,...archSkin(g.fill,g.color,i)});
+      if(!g.ghost && bw>9){
+        put('rect',{x:cx-cw*0.9,y:top-4,width:cw*1.8,height:4,
+          fill:g.color,'fill-opacity':.5,stroke:'none'});   // כותרת
+      }
+      beam+=` L ${cx.toFixed(1)} ${(top-7).toFixed(1)}`;
+    });
+    beam+=` L ${g.x1} ${cap}`;
+    put('path',{d:beam,fill:'none',stroke:g.color,'stroke-width':1.6,'stroke-opacity':.9});
+  }
+
+  else { // stack
+    // הרצף נערם לגובה: כל ערך הוא רוחב תקרה, והזמן עולה במקום להתקדם.
+    const fh=g.H/n;
+    S.norm.forEach((v,i)=>{
+      const w=Math.max(5,(0.16+v*0.84)*g.W*g.prop*0.9);
+      const cx=(g.x0+g.x1)/2, y=g.y1-(i+1)*fh;
+      put('rect',{x:cx-w/2,y,width:w,height:Math.max(1.2,fh*0.82),
+        ...archSkin(g.fill,g.color,i)});
+      if(!g.ghost && fh>7)
+        put('line',{x1:cx-w/2,y1:y,x2:cx+w/2,y2:y,stroke:g.color,'stroke-width':.6,'stroke-opacity':.6});
+    });
+  }
+}
+
+/** קריאה מילולית של השרטוט — מקבילה ל"מה שומעים", ומשמשת גם כפרומפט להמחשה. */
+function writeArchReading(type, S, bays){
+  const v=S.raw, mx=Math.max(...v), mn=Math.min(...v);
+  const peakAt=Math.round(100*v.indexOf(mx)/Math.max(1,v.length-1));
+  const third=Math.max(1,Math.floor(v.length/3));
+  const avg=a=>a.reduce((x,y)=>x+y,0)/a.length;
+  const rise=(avg(v.slice(-third))-avg(v.slice(0,third)))/((mx-mn)||1);
+  // שתי צורות, כי "הרצף" זכר ו"הקרקע" נקבה — התאם דקדוקי, לא קישוט
+  const dirM = rise>0.25 ? 'עולה לאורך הציר' : rise<-0.25 ? 'יורד לאורך הציר'  : 'חוזר לגובה שממנו יצא';
+  const dirF = rise>0.25 ? 'עולה לאורך הציר' : rise<-0.25 ? 'יורדת לאורך הציר' : 'חוזרת לגובה שממנו יצאה';
+  // "מנגינה" הוא שם ברירת המחדל של פורמט ה-JSON, לא שם של מדד. בתוך משפט
+  // אדריכלי הוא קורא לא נכון, ולכן נופלים לניסוח ניטרלי.
+  const rawCol = DATA.columns.find(c=>c.numeric).name;
+  const generic = ['מנגינה','ליווי','ערך','תוויות'].includes(rawCol) || /^עמודה \d+$/.test(rawCol);
+  const col = generic ? 'הערכים' : `"${rawCol}"`;
+  const title = DATA.title;
+
+  const body = {
+    elevation:`חזית בת ${bays} יחידות: כל מבנה מקבל את גובהו מ${col}. הרצף ${dirM}, והמבנה הגבוה עומד בערך ב-${peakAt}% מאורך הרחוב.`,
+    section:  `חתך קרקע בן ${bays} חתכי מדידה לפי ${col}. הקרקע ${dirF}; הנפחים הבנויים מתרוממים דווקא במקומות שבהם השיפוע חד, ונעלמים במישורים.`,
+    colonnade:`קולונדה בת ${bays} עמודים שגובהם נגזר מ${col}. הקורה שמעליהם אינה ישרה — היא מעתיקה את קו הנתונים, כך שהמקצב נראה ולא רק נשמע.`,
+    stack:    `מסה מוערמת מ-${bays} מפלסים: הזמן עולה במקום להתקדם, ורוחב כל מפלס נגזר מ${col} באותו רגע. הצללית ${dirF}.`
+  }[type];
+
+  $('archRead').textContent = body;
+  $('archReadWrap').hidden = false;
+  ARCH_TEXT = `${title} — ${body}`;
+}
+let ARCH_TEXT = '';
+
+/* ==========================================================================
    04-COMPONENTS · B — המיקסר: כרטיס מתקפל לכל שכבה.
    ========================================================================== */
 const SRC_FIXED = [['auto:smooth','אוטומטי — קו מוחלק'],['auto:delta','אוטומטי — קצב שינוי'],['off','כבוי']];
@@ -1232,7 +1549,10 @@ function readSettings(){
     root:+$('root').value,
     smooth:+$('smooth').value,
     legato:+$('legato').value,
-    thresh:+$('thresh').value
+    thresh:+$('thresh').value,
+    archType:$('archType').value,   archBays:+$('archBays').value,
+    archProp:+$('archProp').value,  archDepth:+$('archDepth').value,
+    archFill:$('archFill').value
   };
   LAYERS.forEach(L=>{
     S[L.k]={
@@ -1255,6 +1575,7 @@ function loadSettings(){
   const set=(id,v)=>{ const e=$(id); if(e && v!=null) e.value=v; };
   set('tempo',S.duration); set('scale',S.scale); set('root',S.root);
   set('smooth',S.smooth); set('legato',S.legato); set('thresh',S.thresh);
+  ['archType','archBays','archProp','archDepth','archFill'].forEach(k=>set(k,S[k]));
   LAYERS.forEach(L=>{
     if(!S[L.k]) return;
     const on=$(`on_${L.k}`); if(on) on.checked=!!S[L.k].on;
@@ -1269,6 +1590,9 @@ function syncLabels(){
   $('smoothV').textContent=$('smooth').value;
   $('legatoV').textContent=(+$('legato').value).toFixed(1);
   $('threshV').textContent=(+$('thresh').value).toFixed(2);
+  $('archBaysV').textContent=$('archBays').value;
+  $('archPropV').textContent=(+$('archProp').value).toFixed(2).replace(/0$/,'');
+  $('archDepthV').textContent=$('archDepth').value;
   if(DATA){
     const rate = DATA.n / +$('tempo').value;
     $('rateHint').textContent = `≈ ${rate.toFixed(1)} צלילים בשנייה · ${DATA.n} נקודות`;
@@ -1282,7 +1606,7 @@ function setExportEnabled(on){ ['expWav','expPng','expSvg'].forEach(id=>$(id).di
 function onStructuralChange(){
   updateMeta(); syncLabels(); saveSettings();
   if(playing) stopPlayback();
-  drawViz();
+  drawViz(); drawArch();
 }
 
 async function ensureGraph(S){
@@ -1386,8 +1710,12 @@ function setData(d, libId){
     'ok');
   showInterp(libId);
 
-  // הצעת שמירה — רק למאגר שאינו כבר בספרייה, וכשהאחסון בכלל זמין
+  // הקריאה האדריכלית נבנית מאותם נתונים, ולכן מתרעננת יחד איתם
   markActive(libId || null);
+  drawArch();
+  setArchTab(!!imgGet(libId || null));   // יש תמונה שמורה? נפתח עליה
+
+  // הצעת שמירה — רק למאגר שאינו כבר בספרייה, וכשהאחסון בכלל זמין
   $('saveRow').hidden = !!libId || !storageAvailable;
   if(!$('saveRow').hidden) $('saveName').value = d.title;
 
@@ -1499,6 +1827,9 @@ function applyPreset(p){
   LAYERS.forEach(L=>{
     if(p[L.k]){ $(`inst_${L.k}`).value = p[L.k]; $(`on_${L.k}`).checked = true; }
   });
+  // גם הטיפולוגיה מומלצת: לכל מאגר יש הצורה שהוא מבקש להיות
+  if(p.archType) $('archType').value = p.archType;
+  if(p.archBays) $('archBays').value = p.archBays;
   needsRebuild = true;
   syncLabels(); updateMeta();
 }
@@ -1607,6 +1938,75 @@ function renderLibrary(){
     : 'האחסון המקומי חסום בהקשר הזה, ולכן אי אפשר לשמור מאגרים. פתחו את הקובץ ישירות בדפדפן כדי שהספרייה תעבוד.';
 }
 
+/* ==========================================================================
+   04-COMPONENTS · F — התמונה שלך. נשמרת לכל מאגר בנפרד, כולל המובנים.
+   מוקטנת לפני השמירה: אחסון הדפדפן קטן, ותמונת מצלמה מלאה תמלא אותו לבד.
+   ========================================================================== */
+const IMG_KEY='datasong.images', IMG_MAX=900, IMG_Q=0.72;
+
+function imgMap(){ try{ return JSON.parse(localStorage.getItem(IMG_KEY)||'{}'); }catch(e){ return {}; } }
+function imgGet(id){ return id ? (imgMap()[id]||null) : null; }
+function imgPut(id, dataUrl){
+  const m=imgMap(); m[id]=dataUrl;
+  try{ localStorage.setItem(IMG_KEY, JSON.stringify(m)); return true; }
+  catch(e){ return false; }        // בדרך כלל חריגה ממכסת האחסון
+}
+function imgDel(id){
+  const m=imgMap(); delete m[id];
+  try{ localStorage.setItem(IMG_KEY, JSON.stringify(m)); }catch(e){}
+}
+
+/** מקטין ודוחס לפני שמירה, כדי שהאחסון המקומי לא יתמלא מתמונה אחת. */
+function shrinkImage(file){
+  return new Promise((res,rej)=>{
+    const url=URL.createObjectURL(file), im=new Image();
+    im.onload=()=>{
+      const s=Math.min(1, IMG_MAX/Math.max(im.width,im.height));
+      const cv=document.createElement('canvas');
+      cv.width=Math.max(1,Math.round(im.width*s)); cv.height=Math.max(1,Math.round(im.height*s));
+      cv.getContext('2d').drawImage(im,0,0,cv.width,cv.height);
+      URL.revokeObjectURL(url);
+      res(cv.toDataURL('image/jpeg', IMG_Q));
+    };
+    im.onerror=()=>{ URL.revokeObjectURL(url); rej(new Error('bad image')); };
+    im.src=url;
+  });
+}
+
+async function acceptArchImage(file){
+  if(!file || !/^image\//.test(file.type)){ archStatus('זה לא קובץ תמונה.','err'); return; }
+  if(!activeId){ archStatus('שמרו קודם את המאגר בספרייה, כדי שתהיה לתמונה כתובת.','err'); return; }
+  try{
+    const url = await shrinkImage(file);
+    if(!imgPut(activeId, url)){
+      archStatus('אין מקום באחסון הדפדפן. הסירו תמונה אחרת ונסו שוב.','err'); return;
+    }
+    showOwnImage();
+    archStatus('התמונה נשמרה למאגר הזה.','ok');
+  }catch(e){ archStatus('לא הצלחתי לקרוא את התמונה.','err'); }
+}
+
+function showOwnImage(){
+  const url = imgGet(activeId);
+  const img=$('ownImg'), empty=$('ownEmpty'), clear=$('ownClear');
+  img.classList.toggle('has', !!url);
+  if(url) img.src=url; else img.removeAttribute('src');
+  empty.hidden = !!url;
+  clear.hidden = !url;
+}
+
+function setArchTab(own){
+  $('tabGen').classList.toggle('on', !own);
+  $('tabOwn').classList.toggle('on', own);
+  $('tabGen').setAttribute('aria-selected', String(!own));
+  $('tabOwn').setAttribute('aria-selected', String(own));
+  $('ownWrap').hidden = !own;
+  archSvg.style.visibility = own ? 'hidden' : 'visible';
+  $('archCtl').style.opacity = own ? '.45' : '1';
+  if(own) showOwnImage();
+}
+const archStatus=(m,c)=>{ const e=$('archStatus'); e.textContent=m; e.className='status'+(c?' '+c:''); };
+
 /* ---------- ייצוא ---------- */
 async function exportWav(){
   if(!DATA) return;
@@ -1644,23 +2044,25 @@ function exportSvg(){
   expStatus('קובץ SVG נשמר.','ok');
 }
 
-function exportPng(){
+/** ממיר SVG כלשהו ל-PNG ברזולוציה כפולה. משרת גם את הגרף וגם את השרטוט. */
+function pngFrom(el, w, h, name, say){
   const scale=2;
-  const blob=new Blob([svgString()],{type:'image/svg+xml;charset=utf-8'});
+  const blob=new Blob([svgString(el,w,h)],{type:'image/svg+xml;charset=utf-8'});
   const url=URL.createObjectURL(blob), img=new Image();
   img.onload=()=>{
     const cv=document.createElement('canvas');
-    cv.width=VW*scale; cv.height=VH*scale;
+    cv.width=w*scale; cv.height=h*scale;
     const ctx=cv.getContext('2d');
     ctx.fillStyle=css('--panel2')||'#1b262d';
     ctx.fillRect(0,0,cv.width,cv.height);
     ctx.drawImage(img,0,0,cv.width,cv.height);
     URL.revokeObjectURL(url);
-    cv.toBlob(b=>{ download(b, fileBase()+'.png'); expStatus('קובץ PNG נשמר (רזולוציה כפולה).','ok'); },'image/png');
+    cv.toBlob(b=>{ download(b, name); say('קובץ PNG נשמר (רזולוציה כפולה).','ok'); },'image/png');
   };
-  img.onerror=()=>{ URL.revokeObjectURL(url); expStatus('המרת ה-PNG נכשלה — נסו SVG.','err'); };
+  img.onerror=()=>{ URL.revokeObjectURL(url); say('המרת ה-PNG נכשלה — נסו SVG.','err'); };
   img.src=url;
 }
+function exportPng(){ pngFrom(svg, VW, VH, fileBase()+'.png', expStatus); }
 
 const fileBase = () => 'datasong-' + (DATA && DATA.title ? DATA.title.replace(/[\\/:*?"<>|]/g,'').slice(0,40).trim() : 'export');
 function expStatus(m,c){ const e=$('expStatus'); e.textContent=m; e.className='status'+(c?' '+c:''); }
@@ -1674,6 +2076,39 @@ loadSettings();
 syncLabels();
 
 renderLibrary();
+
+/* ---------- האדריכלות ---------- */
+['archType','archFill'].forEach(id=>$(id).addEventListener('change',()=>{ drawArch(); saveSettings(); }));
+['archBays','archProp','archDepth'].forEach(id=>$(id).addEventListener('input',()=>{
+  $('archBaysV').textContent=$('archBays').value;
+  $('archPropV').textContent=(+$('archProp').value).toFixed(2).replace(/0$/,'');
+  $('archDepthV').textContent=$('archDepth').value;
+  drawArch(); saveSettings();
+}));
+
+$('tabGen').addEventListener('click',()=>setArchTab(false));
+$('tabOwn').addEventListener('click',()=>setArchTab(true));
+
+const archFile=$('archFile'), ownEmpty=$('ownEmpty');
+archFile.addEventListener('change',e=>{ acceptArchImage(e.target.files[0]); e.target.value=''; });
+['dragover','dragenter'].forEach(ev=>ownEmpty.addEventListener(ev,e=>{e.preventDefault();ownEmpty.classList.add('over');}));
+['dragleave','drop'].forEach(ev=>ownEmpty.addEventListener(ev,e=>{e.preventDefault();ownEmpty.classList.remove('over');}));
+ownEmpty.addEventListener('drop',e=>acceptArchImage(e.dataTransfer.files[0]));
+$('ownClear').addEventListener('click',()=>{
+  if(!activeId || !confirm('להסיר את התמונה השמורה למאגר הזה?')) return;
+  imgDel(activeId); showOwnImage(); archStatus('התמונה הוסרה.','');
+});
+
+$('archPng').addEventListener('click',()=>pngFrom(archSvg,AW,AH,fileBase()+'-אדריכלות.png',archStatus));
+$('archSvg').addEventListener('click',async ()=>{
+  const ok = await download(new Blob([svgString(archSvg,AW,AH)],{type:'image/svg+xml;charset=utf-8'}),
+                            fileBase()+'-אדריכלות.svg');
+  if(ok !== false) archStatus('קובץ SVG נשמר.','ok');
+});
+$('archCopy').addEventListener('click',async ()=>{
+  try{ await navigator.clipboard.writeText(ARCH_TEXT); archStatus('התיאור הועתק.','ok'); }
+  catch(e){ archStatus('ההעתקה נחסמה — סמנו את הטקסט שמתחת לשרטוט.','err'); }
+});
 
 // מתג ההסברים — מצב נשמר, כך שהבחירה מחזיקה בין ביקורים
 $('showHelp').addEventListener('change',e=>{
