@@ -1,4 +1,28 @@
 # CLAUDE.md
 
+## בעלות ולוגו
+האפליקציה של ענת (לא עירונית). כפתור הלוגו הוא A&I, בלי `brand="ashdod"`.
+
 ## A&I logo button
 The top bar holds only the app name (links home), content navigation, and ONE logo button "אד' ענת שטיבלמן A&I" (`<ai-menu>` from https://appofapp-gh.vercel.app/ai-menu.js). Every editing and development action (העתקת קישור, שיחת הפיתוח, פרויקט המחקר, התקנת האפליקציה, edit mode, add, delete) lives only inside it, never as loose buttons. Standard: https://github.com/Anat1969/AppOfApp-GH/blob/main/docs/ai-menu-standard.md
+
+## מיצוב (ענת, 2026-10-27)
+- DataSong היא פלטפורמה לאמנות AI, וכך היא משווקת וממותגת את עצמה: כל מאגר הוא "יצירה" עם שם, צליל, שרטוט והדמיה.
+- תמונות הפרומפט הן יצירות אמנות של אדריכלות עכשווית וחדשנית שמעוררת השראה, והצורה שלהן מפרשת את צורת הנתונים (שתי קשתות לשני שיאים, חריץ לאפיק). לא תמונות גנריות.
+- כל יצירה מלווה במאמר מגזין מעוצב, עם PDF להדפסה על A4 בקומפוזיציה של דף קבוע, בלי חיתוך, ועם גרסת Word לעריכה.
+- עומס חזותי הוא באג: פעולה מרכזית אחת בכל מסך (נגן), וכל הפקדים המתקדמים במגירת "כיוונון היצירה".
+
+## מבנה
+- `index.html` מבנה, `styles.css` עיצוב, `app.js` מנוע הצליל והשרטוט + המעטפת (ראוטר בסוף הקובץ).
+- נתיבים: `#/` בית וגלריה, `#/work/<id>` יצירה, `#/mine/<id>` נתונים שמורים, `#/studio` הנתונים הטעונים, `#/data` טעינה וספרייה.
+- דף הבית בהיר (קיר גלריה), הסטודיו אפל (`html.room`). הגרף והשרטוט קוראים צבעים מהטוקנים, ולכן מצוירים מחדש בכל החלפת חדר.
+- `art/` ההדמיות (webp, גרסה מלאה ו-`-sm`). נוצרו ב-Canva, הפרומפטים ב-README.
+
+## המאמר
+- התוכן ב-`tools/article_content.py`. לא לערוך את `article.html` או את `print/article-a4.html` ידנית.
+- בנייה: `python3 -m http.server 8765 &` ואז `python3 tools/build_article.py && node tools/make_pdf.js && python3 tools/build_docx.py`.
+- `make_pdf.js` נכשל אם רכיב חורג מהדף או נוגע במספר העמוד.
+
+## בדיקה ופריסה
+- `node tests/e2e.js` מול שרת על 8765. בלי כל הבדיקות ירוקות אין מסירה.
+- פריסה: Vercel מ-main. מיזוג ל-main מעדכן את הכתובת הראשית.

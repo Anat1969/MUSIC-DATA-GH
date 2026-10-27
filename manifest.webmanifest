@@ -1,0 +1,17 @@
+{
+  "name": "DataSong · נתונים כמוזיקה וכאדריכלות",
+  "short_name": "DataSong",
+  "description": "פלטפורמת אמנות AI: נתונים שהופכים למוזיקה, לשרטוט ולדימוי אדריכלי.",
+  "lang": "he",
+  "dir": "rtl",
+  "start_url": "./#/",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#e7e5e1",
+  "theme_color": "#e7e5e1",
+  "icons": [
+    {"src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
+    {"src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable"},
+    {"src": "icon.svg", "sizes": "any", "type": "image/svg+xml"}
+  ]
+}
