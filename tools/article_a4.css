@@ -1,0 +1,92 @@
+/* מאמר DataSong, דף A4. שוליים 12 מ"מ, תמונה ברוחב חתך הזהב (129.8 מ"מ),
+   שער בגובה חתך הזהב (183.6 מ"מ). מערכת העיצוב באפורים, התמונות בצבע. */
+@page{size:210mm 297mm;margin:0}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:#777}
+body{font-family:'Heebo',sans-serif;font-weight:300;font-size:9pt;line-height:1.55;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.page{
+  --ink:#111111;--ink2:#707070;--rule:rgba(0,0,0,.18);
+  position:relative;width:210mm;height:297mm;overflow:hidden;background:var(--bg);color:var(--ink);
+  padding:12mm;page-break-after:always;break-after:page;margin:0 auto
+}
+.page.dark{--ink:#f2f2f2;--ink2:#a3a3a3;--rule:rgba(255,255,255,.2)}
+img{display:block}
+.hadmaya{position:absolute;bottom:3mm;inset-inline-start:3.5mm;font-size:6.5pt;color:#fff;text-shadow:0 0 2px rgba(0,0,0,.8),0 0 6px rgba(0,0,0,.5);letter-spacing:.06em}
+
+.run{position:absolute;bottom:6mm;left:12mm;right:12mm;display:flex;justify-content:space-between;font-size:6.5pt;letter-spacing:.14em;color:var(--ink2)}
+.run .pn{font-weight:400}
+
+/* ---- שער ---- */
+.cover{padding:0}
+.cover-img{position:relative;width:210mm;height:183.6mm;overflow:hidden}
+.cover-img img{width:100%;height:100%;object-fit:cover;object-position:62% 50%}
+.cover-text{padding:9mm 12mm 0 12mm;width:calc(129.8mm + 12mm)}
+.kicker{font-size:7pt;letter-spacing:.18em;color:var(--ink2);margin-bottom:3mm}
+h1{margin:0 0 5mm;font-family:'Frank Ruhl Libre',serif;line-height:1.02;font-size:31pt}
+h1 .t1{display:block;font-weight:300}
+h1 .t2{display:block;font-weight:700}
+.lede{margin:0 0 5mm;font-size:9.6pt;line-height:1.6}
+.byline{font-size:8pt;letter-spacing:.08em;color:var(--ink2)}
+
+/* ---- פרקים ---- */
+.chapter{display:grid;grid-template-columns:24mm minmax(0,1fr);gap:0 6mm;margin-bottom:11mm}
+.page:not(.cover) .chapter:first-child{margin-top:6mm}
+.cnum{font-family:'Heebo',sans-serif;font-weight:100;font-size:38pt;line-height:.9;color:var(--ink)}
+.ctext{max-width:132mm}
+.ctext h2{margin:1mm 0 4mm;font-family:'Frank Ruhl Libre',serif;font-weight:500;font-size:17pt;line-height:1.2}
+.ctext p{margin:0 0 3mm;text-align:start}
+.insight{margin-top:5mm !important;padding-top:3mm;border-top:.3mm solid var(--ink);font-family:'Frank Ruhl Libre',serif;font-weight:500;font-size:11.5pt;line-height:1.4}
+
+.glyphs{display:grid;grid-template-columns:repeat(3,1fr);gap:8mm;margin:4mm 0 0 0;padding-top:6mm;border-top:.2mm solid var(--rule)}
+.glyphs figure{margin:0;color:var(--ink)}
+.glyphs svg{width:100%;height:24mm}
+.glyphs figcaption{margin-top:2mm;font-size:7.5pt;letter-spacing:.1em;color:var(--ink2)}
+
+/* ---- דפי היצירות: שתי רצועות של חצי דף ---- */
+.works{padding:0}
+.strip{position:absolute;left:0;right:0;height:148.5mm;display:flex;align-items:center}
+.strip:nth-child(1){top:0}
+.strip:nth-child(2){top:148.5mm}
+.divider{position:absolute;top:148.5mm;left:12mm;right:12mm;height:0;border-top:.2mm solid var(--rule)}
+.wimg{position:relative;margin:0;width:129.8mm;height:129.8mm;flex:0 0 auto;box-shadow:0 2mm 6mm rgba(0,0,0,.18)}
+.wimg img{width:100%;height:100%;object-fit:cover}
+/* בכיוון RTL הפריט הראשון בשורה עומד מימין: תמונה ראשונה נוגעת בשול הימני */
+.strip.img-right{flex-direction:row}
+.strip.img-left{flex-direction:row-reverse}
+.wtext{flex:1 1 auto;padding:0 9mm;align-self:center}
+.wn{font-weight:100;font-size:30pt;line-height:.9;color:var(--ink)}
+.wtext h3{margin:2.5mm 0 1.2mm;font-family:'Frank Ruhl Libre',serif;font-weight:500;font-size:14pt;line-height:1.15}
+.latin{direction:ltr;text-align:right;font-size:6.2pt;letter-spacing:.2em;font-variant:small-caps;color:var(--ink2);margin-bottom:3mm}
+.spark{display:block;width:100%;height:8mm;color:var(--ink);margin-bottom:3mm;opacity:.85}
+.wtext p{margin:0 0 2.2mm;font-size:8.4pt;line-height:1.5}
+.wtext b{font-weight:500}
+
+/* ---- סיום ---- */
+.closing .chapter{margin-top:6mm}
+.steps{margin:3mm 0 0;padding:0 5mm 0 0}
+.steps li{margin-bottom:1.6mm}
+.question{margin:4mm 0 8mm;font-family:'Frank Ruhl Libre',serif;font-weight:300;font-size:19pt;line-height:1.25;max-width:150mm}
+.thumbs{display:grid;grid-template-columns:repeat(8,1fr);gap:2mm;margin-bottom:7mm}
+.thumbs img{width:100%;aspect-ratio:1;object-fit:cover}
+.note{font-size:7.6pt;color:var(--ink2);max-width:150mm;margin:0 0 5mm}
+.sources h4{margin:0 0 2mm;font-weight:500;font-size:8pt;letter-spacing:.1em}
+.sources ol{margin:0 0 5mm;padding:0 4mm 0 0;font-size:7.4pt;color:var(--ink2)}
+.colophon{font-size:7.4pt;color:var(--ink2);max-width:150mm;padding-top:3mm;border-top:.2mm solid var(--rule)}
+
+/* ---- ציטוט ופרטיטורה ---- */
+.pull{margin:2mm 0 0 0;padding:7mm 30mm 0 0;border-top:.2mm solid var(--rule)}
+.pull p{margin:0 0 2mm;font-family:'Frank Ruhl Libre',serif;font-weight:300;font-size:20pt;line-height:1.25}
+.pull p[lang=de]{font-size:12pt;color:var(--ink2);font-style:italic;text-align:right}
+.pull cite{font-style:normal;font-size:7.5pt;letter-spacing:.1em;color:var(--ink2)}
+.score{margin:9mm 0 0;color:var(--ink)}
+.score svg{width:100%;height:auto}
+.score .base{stroke:var(--rule);stroke-width:.6}
+.score .pl{fill:none;stroke:currentColor;stroke-width:1.1}
+.score .thick{stroke-width:2.2;opacity:.75}
+.score rect{fill:currentColor;opacity:.8}
+.score .hit{stroke:currentColor;stroke-width:1.4}
+.score .ln{font-family:'Heebo',sans-serif;font-size:9px;fill:var(--ink2);direction:rtl;text-anchor:end}
+.score figcaption{margin-top:2mm;font-size:7.2pt;color:var(--ink2)}
+.ctext p{font-size:9.4pt}
+.ctext p.insight{font-size:12pt;line-height:1.4}
+.pull p{font-size:23pt}

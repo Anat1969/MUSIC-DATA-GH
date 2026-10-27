@@ -1,0 +1,76 @@
+/* עמוד המגזין באתר. אותה שפה כמו ה-PDF: הרקע יורד מבהיר לכהה עם קפיצה אחת. */
+.mag{font-family:'Heebo',var(--sans);font-weight:300}
+.mag h1,.mag h2,.mag h3,.question,.insight{font-family:'Frank Ruhl Libre',serif}
+.mag-cover{display:grid;grid-template-columns:minmax(0,1fr);background:#fff}
+.mag-cover img{width:100%;height:min(72vh,760px);object-fit:cover;object-position:62% 50%}
+.mag-cover-text{padding:clamp(28px,5vw,64px) var(--gut) clamp(48px,7vw,96px);max-width:900px}
+.kicker{font-size:.8rem;letter-spacing:.16em;color:#707070;margin-bottom:12px}
+.mag h1{margin:0 0 22px;line-height:1.02;font-size:clamp(2.6rem,6vw,5rem)}
+.mag h1 .t1{display:block;font-weight:300}
+.mag h1 .t2{display:block;font-weight:700}
+.lede{font-size:clamp(1.05rem,1.6vw,1.25rem);line-height:1.7;margin:0 0 18px;color:#111;max-width:62ch}
+.byline{color:#707070;letter-spacing:.06em;font-size:.9rem;margin-bottom:26px}
+.dl{display:flex;flex-wrap:wrap;gap:12px}
+
+.mag-body{background:#f3f3f3;color:#111;padding:clamp(48px,7vw,96px) var(--gut)}
+.chapter{display:grid;grid-template-columns:clamp(56px,9vw,120px) minmax(0,1fr);gap:0 clamp(12px,3vw,32px);max-width:960px;margin:0 auto clamp(48px,6vw,80px)}
+.cnum{font-family:'Heebo',sans-serif;font-weight:100;font-size:clamp(3.4rem,7vw,5.6rem);line-height:.9}
+.ctext{max-width:66ch}
+.ctext h2{margin:6px 0 18px;font-weight:500;font-size:clamp(1.5rem,2.6vw,2.1rem);line-height:1.2}
+.ctext p{margin:0 0 14px;font-size:1.06rem;line-height:1.8}
+.insight{margin-top:24px !important;padding-top:14px;border-top:1px solid currentColor;font-weight:500;font-size:clamp(1.2rem,2vw,1.45rem) !important;line-height:1.45 !important}
+.glyphs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(16px,4vw,48px);max-width:960px;margin:0 auto;padding-top:28px;border-top:1px solid rgba(0,0,0,.15)}
+.glyphs figure{margin:0}
+.glyphs svg{width:100%;height:auto}
+.glyphs figcaption{margin-top:8px;font-size:.85rem;color:#707070;letter-spacing:.08em}
+
+.mag-works{background:#dddddd}
+.strip{display:grid;grid-template-columns:minmax(0,61.8fr) minmax(0,38.2fr);align-items:center;color:#111}
+.strip:nth-child(n+5){background:#3e3e3e;color:#f2f2f2}
+.strip:nth-child(n+7){background:#262626}
+.strip.img-left{grid-template-columns:minmax(0,38.2fr) minmax(0,61.8fr)}
+.strip.img-left .wimg{order:2}
+.wimg{position:relative;margin:0}
+.wimg img{width:100%;aspect-ratio:1;object-fit:cover}
+.hadmaya{position:absolute;bottom:12px;inset-inline-start:14px;font-size:.72rem;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.8)}
+.wtext{padding:clamp(28px,5vw,72px)}
+.wn{font-weight:100;font-size:clamp(2.6rem,5vw,4rem);line-height:.9}
+.wtext h3{margin:10px 0 4px;font-weight:500;font-size:clamp(1.4rem,2.4vw,2rem)}
+.latin{direction:ltr;text-align:right;font-size:.72rem;letter-spacing:.2em;font-variant:small-caps;opacity:.65;margin-bottom:14px}
+.spark{display:block;width:100%;height:36px;margin-bottom:14px;opacity:.85}
+.wtext p{margin:0 0 10px;line-height:1.7}
+.wtext b{font-weight:500}
+
+.mag-close{background:#131313;color:#f2f2f2;padding:clamp(56px,8vw,112px) var(--gut)}
+.mag-close .chapter{margin-bottom:24px}
+.steps{max-width:66ch;padding-inline-start:1.2em;line-height:1.8}
+.question{max-width:960px;margin:24px auto 40px;font-weight:300;font-size:clamp(1.6rem,3.4vw,2.8rem);line-height:1.25}
+.thumbs{max-width:960px;margin:0 auto 32px;display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:8px}
+.thumbs img{width:100%;aspect-ratio:1;object-fit:cover;opacity:.85;transition:opacity .3s}
+.thumbs a:hover img{opacity:1}
+.note,.sources,.colophon,.mag-close .dl{max-width:960px;margin-inline:auto}
+.note,.colophon{color:#a3a3a3;font-size:.9rem;line-height:1.7}
+.sources h4{margin:24px 0 8px;font-weight:500;letter-spacing:.08em;font-size:.9rem}
+.sources ol{color:#a3a3a3;font-size:.86rem;line-height:1.7;padding-inline-start:1.2em}
+.colophon{padding-top:14px;border-top:1px solid rgba(255,255,255,.2);margin-bottom:28px}
+
+@media (max-width:860px){
+  .strip,.strip.img-left{grid-template-columns:minmax(0,1fr)}
+  .strip.img-left .wimg{order:0}
+  .thumbs{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .glyphs{grid-template-columns:minmax(0,1fr)}
+}
+.pull{max-width:960px;margin:0 auto clamp(48px,6vw,80px);padding-top:28px;border-top:1px solid rgba(0,0,0,.15)}
+.pull p{margin:0 0 8px;font-family:'Frank Ruhl Libre',serif;font-weight:300;font-size:clamp(1.6rem,3.4vw,2.6rem);line-height:1.25}
+.pull p[lang=de]{font-size:1.1rem;color:#707070;font-style:italic;text-align:right}
+.pull cite{font-style:normal;font-size:.85rem;color:#707070;letter-spacing:.06em}
+.score{max-width:960px;margin:40px auto 0;color:#111}
+.score svg{width:100%;height:auto}
+.score .base{stroke:rgba(0,0,0,.18);stroke-width:.6}
+.score .pl{fill:none;stroke:currentColor;stroke-width:1.1}
+.score .thick{stroke-width:2.2;opacity:.75}
+.score rect{fill:currentColor;opacity:.8}
+.score .hit{stroke:currentColor;stroke-width:1.4}
+.score .ln{font-size:9px;fill:#707070;text-anchor:end}
+.score figcaption{margin-top:8px;font-size:.85rem;color:#707070}
+.wimg img{max-height:82vh}
