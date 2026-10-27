@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
-"""גרסת Word של המאמר, לעריכה. מקטע לכל דף, ובכל מקטע כותרת עליונה לא מקושרת
-עם תמונת רקע בגודל הדף בגוון של אותו דף, כך שהרקע מכסה גם את השוליים.
+"""גרסת Word של המאמר, לעריכה. אותה תבנית כמו ה-PDF: מקטע לכל דף, רקע לבן בגודל הדף
+(תמונה בכותרת העליונה, כדי שהרקע יכסה גם את השוליים), ובכל דף אותו סדר ואותם גדלים:
+תמונה ריבועית, מספר, כותרת, תווית, משפט מפתח, טקסט, ופס הגרפיקה (תמונה מ-print/bands).
 הרצה מתיקיית השורש: python3 tools/build_docx.py"""
 import os, sys, copy
 from docx import Document
@@ -11,7 +12,7 @@ from docx.oxml import parse_xml
 from PIL import Image
 sys.path.insert(0, os.path.dirname(__file__))
 from article_content import *  # noqa
-from build_article import BG
+from build_article import pages
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TMP = os.path.join(ROOT, 'print', 'bg')
@@ -67,71 +68,58 @@ def background(section, hexcolor):
     anchor.append(copy.deepcopy(graphic))
     inline.getparent().replace(inline, anchor)
 
-def new_page(doc, i, first=False):
+IMG_MM = 112          # אותו גודל לכל התמונות במסמך
+INK, INK2 = '111111', '707070'
+
+def new_page(doc, first=False):
     sec = doc.sections[0] if first else doc.add_section(WD_SECTION.NEW_PAGE)
     sec.page_width, sec.page_height = Mm(210), Mm(297)
     for m in ('left_margin', 'right_margin', 'top_margin', 'bottom_margin'):
         setattr(sec, m, Mm(12))
     sec.header_distance = Mm(0)
-    background(sec, BG[i])
-    dark = i >= 4
-    return ('F2F2F2', 'A3A3A3') if dark else ('111111', '707070')
+    background(sec, '#ffffff')
 
-def chapter(doc, c, ink, ink2):
-    para(doc, c['n'], 30, False, ink, 'Arial', 0)
-    para(doc, c['title'], 16, True, ink, 'David', 6)
-    for b in c['body']:
-        para(doc, b, 10.5, False, ink, 'David', 6)
-    para(doc, c['insight'], 12, True, ink, 'David', 14)
+def picture(doc, path, width):
+    doc.add_picture(path, width=Mm(width)); rtl(doc.paragraphs[-1])
+    doc.paragraphs[-1].paragraph_format.space_after = Pt(4)
 
 def build():
     doc = Document()
     st = doc.styles['Normal']; st.font.name = 'David'; st.font.size = Pt(10.5)
-    # 1 שער
-    ink, ink2 = new_page(doc, 0, first=True)
-    doc.add_picture(os.path.join(ROOT, 'print', 'img', 'hero.jpg'), width=Mm(186))
-    rtl(doc.paragraphs[-1])
-    para(doc, 'הדמיה', 7, False, ink2, 'Arial', 8)
-    para(doc, KICKER, 8, False, ink2, 'Arial', 4)
-    para(doc, TITLE_1, 30, False, ink, 'David', 0)
-    para(doc, TITLE_2, 30, True, ink, 'David', 8)
-    para(doc, LEDE, 11, False, ink, 'David', 8)
-    para(doc, BYLINE, 9, False, ink2, 'Arial', 0)
-    # 2-3 פרקים
-    ink, ink2 = new_page(doc, 1)
-    chapter(doc, CHAPTERS[0], ink, ink2); chapter(doc, CHAPTERS[1], ink, ink2)
-    para(doc, 'Ich nenne die Architektur eine erstarrte Musik.', 12, False, ink2, 'Arial', 2, italic=True)
-    para(doc, '"אני קורא לאדריכלות מוזיקה שקפאה."', 20, False, ink, 'David', 2)
-    para(doc, 'גתה, בשיחה עם אקרמן, 1829', 8, False, ink2, 'Arial', 0)
-    ink, ink2 = new_page(doc, 2)
-    chapter(doc, CHAPTERS[2], ink, ink2)
-    # 4-7 יצירות, שתיים בכל דף
-    for k in range(4):
-        ink, ink2 = new_page(doc, 3 + k + (0 if k == 0 else 0))
-        for j, w in enumerate(WORKS[k*2:k*2+2]):
-            n = k*2 + j + 1
-            doc.add_picture(os.path.join(ROOT, 'print', 'img', w['id'] + '.jpg'), width=Mm(78))
-            rtl(doc.paragraphs[-1])
-            para(doc, 'הדמיה', 7, False, ink2, 'Arial', 4)
-            para(doc, f'{n:02d}  {w["name"]}', 15, True, ink, 'David', 0)
-            para(doc, w['latin'], 7, False, ink2, 'Arial', 4)
-            for lab, key in (('הנתונים. ', 'data'), ('הצליל. ', 'sound'), ('הדימוי. ', 'image')):
-                p = para(doc, '', after=3)
-                run(p, lab, 9.5, True, ink); run(p, w[key], 9.5, False, ink)
-            para(doc, '', after=8)
-    # 8 סיום
-    ink, ink2 = new_page(doc, 7)
-    para(doc, '4', 30, False, ink, 'Arial', 0)
-    para(doc, PLANNING_TITLE, 16, True, ink, 'David', 6)
-    para(doc, PLANNING, 10.5, False, ink, 'David', 6)
-    for i, s in enumerate(STEPS, 1):
-        para(doc, f'{i}. {s}', 10.5, False, ink, 'David', 3)
-    para(doc, QUESTION, 18, False, ink, 'David', 12)
-    para(doc, NOTE, 8.5, False, ink2, 'David', 8)
-    para(doc, 'מקורות', 9, True, ink, 'Arial', 3)
-    for s in SOURCES:
-        para(doc, s, 8.5, False, ink2, 'David', 2)
-    para(doc, COLOPHON, 8.5, False, ink2, 'David', 0)
+    for i, pg in enumerate(pages()):
+        new_page(doc, first=(i == 0))
+        if pg['img']:
+            picture(doc, os.path.join(ROOT, 'print', 'img', pg['img'] + '.jpg'), IMG_MM)
+        else:
+            # דף הסיום: רשת היצירות כתמונה אחת באותו גודל
+            from PIL import Image as I
+            cells = [I.open(os.path.join(ROOT, 'print', 'img', w['id'] + '.jpg')) for w in WORKS]
+            cells.append(I.open(os.path.join(ROOT, 'print', 'img', 'hero-sq.jpg')))
+            g, c = 1200, 1200 // 3
+            grid = I.new('RGB', (g, g), 'white')
+            for k, im in enumerate(cells):
+                grid.paste(im.resize((c - 8, c - 8)), ((2 - k % 3) * c + 4, (k // 3) * c + 4))
+            gp = os.path.join(TMP, 'grid.jpg'); grid.save(gp, quality=85)
+            picture(doc, gp, IMG_MM)
+        para(doc, 'הדמיה', 7, False, INK2, 'Arial', 6)
+        if pg['kind'] == 'cover':
+            para(doc, pg['label'], 8, False, INK2, 'Arial', 4)
+            para(doc, TITLE_1, 28, False, INK, 'David', 0)
+            para(doc, TITLE_2, 28, True, INK, 'David', 8)
+        else:
+            para(doc, pg['num'], 26, False, INK, 'Arial', 0)
+            para(doc, pg['title'], 15, True, INK, 'David', 0)
+            para(doc, pg['label'], 7, False, INK2, 'Arial', 6)
+        for b in pg['body']:
+            p = para(doc, '', after=4)
+            if isinstance(b, tuple):
+                run(p, b[0], 10, True, INK); run(p, b[1], 10, False, INK)
+            else:
+                run(p, b, 10.5 if pg['kind'] == 'cover' else 10, False, INK)
+        para(doc, pg['caption'], 11.5 if pg['kind'] != 'cover' else 9, pg['kind'] != 'cover', INK if pg['kind'] != 'cover' else INK2, 'David', 6)
+        band = os.path.join(ROOT, 'print', 'bands', f'band-{i+1:02d}.png')
+        if os.path.exists(band):
+            picture(doc, band, 186)
     out = os.path.join(ROOT, 'datasong-article.docx')
     doc.save(out)
     print('built', out)
