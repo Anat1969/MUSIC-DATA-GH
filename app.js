@@ -1338,8 +1338,9 @@ function showInterp(libId){
     return;
   }
   const shape = describeShape();
-  $('ipStory').textContent  = shape.data;
-  $('ipListen').textContent = shape.sound;
+  // קובץ שמביא פרשנות משלו (גיליון "הסבר") גובר על הקריאה האוטומטית של הצורה
+  $('ipStory').textContent  = (DATA.notes && DATA.notes.story)  || shape.data;
+  $('ipListen').textContent = (DATA.notes && DATA.notes.listen) || shape.sound;
   $('ipSrc').textContent    = DATA.source || '';
   $('ipSrcWrap').hidden = !DATA.source;
   box.hidden = false;
@@ -1371,6 +1372,34 @@ function describeShape(){
   };
 }
 
+/** קורא קובץ כטקסט; Excel הופך קודם ל-CSV של הגיליון הראשון. */
+const isExcel = f => /\.(xlsx|xls|ods)$/i.test(f.name);
+let xlsxLib = null;
+async function loadXlsx(){
+  if(xlsxLib) return xlsxLib;
+  // הספרייה נטענת רק כשמגיע קובץ Excel, כדי שהאפליקציה תישאר קלה
+  await new Promise((res,rej)=>{ const sc=document.createElement('script');
+    sc.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'; sc.onload=res; sc.onerror=()=>rej(new Error('xlsx'));
+    document.head.appendChild(sc); });
+  return (xlsxLib = window.XLSX);
+}
+async function readAny(f){
+  if(!isExcel(f)) return readText(f);
+  const X = await loadXlsx();
+  const wb = X.read(await f.arrayBuffer(), {type:'array'});
+  // גיליון "הסבר" (אם קיים): כותרת, סיפור, מה שומעים ומקור, כדי שהפרשנות תגיע עם הקובץ
+  const ex = wb.Sheets['הסבר'];
+  FILE_META = null;
+  if(ex){
+    const m = {};
+    X.utils.sheet_to_json(ex,{header:1}).forEach(r=>{ if(r && r[0]) m[String(r[0]).trim()] = String(r[1]||'').trim(); });
+    FILE_META = {title:m['כותרת'], story:m['מה הנתונים מספרים'], listen:m['מה תשמעו'], source:m['מקור']};
+  }
+  return X.utils.sheet_to_csv(wb.Sheets[wb.SheetNames[0]], {blankrows:false});
+}
+let FILE_META = null;
+/** שם קובץ קריא: בלי סיומת, בלי מספור בתחילתו ובלי קווים תחתונים. */
+const niceName = n => n.replace(/\.[^.]+$/,'').replace(/^\d+[_\-\s]*/,'').replace(/[_]+/g,' ').trim();
 const readText = f => new Promise((res,rej)=>{
   const r=new FileReader();
   r.onload=()=>res(r.result); r.onerror=()=>rej(new Error(f.name));
@@ -1387,8 +1416,11 @@ async function readFiles(files){
 
   if(list.length === 1){
     try{
-      const d = parseInput(await readText(list[0]), list[0].name.replace(/\.[^.]+$/,''));
-      if(d) setData(d); else setStatus(`לא הצלחתי לזהות נתונים בקובץ "${list[0].name}".`,'err');
+      FILE_META = null;
+      const d = parseInput(await readAny(list[0]), niceName(list[0].name));
+      if(d && FILE_META){ if(FILE_META.title) d.title = FILE_META.title; if(FILE_META.source) d.source = FILE_META.source;
+                          d.notes = {story:FILE_META.story, listen:FILE_META.listen}; }
+      if(d){ setData(d); CREATING = true; go('#/studio'); } else setStatus(`לא הצלחתי לזהות נתונים בקובץ "${list[0].name}".`,'err');
     }catch(e){ setStatus('שגיאה בקריאת הקובץ.','err'); }
     return;
   }
@@ -1396,7 +1428,7 @@ async function readFiles(files){
   let ok=0; const failed=[];
   for(const f of list){
     try{
-      const d = parseInput(await readText(f), f.name.replace(/\.[^.]+$/,''));
+      const d = parseInput(await readAny(f), f.name.replace(/\.[^.]+$/,''));
       if(d){ setData(d); saveToLibrary(f.name.replace(/\.[^.]+$/,'')); ok++; }
       else failed.push(f.name);
     }catch(e){ failed.push(f.name); }
@@ -2067,13 +2099,25 @@ function route(){
   }
   if(h==='#/studio'){
     if(!DATA) return go('#/work/01_ashdod_elevation');
-    lastStudio=h; v_current='studio'; showView('studio'); window.scrollTo({top:0}); redrawForTheme(); return;
+    lastStudio=h; v_current='studio'; showView('studio'); window.scrollTo({top:0}); redrawForTheme(); requestAnimationFrame(sizeRail);
+    if(CREATING){ CREATING=false; playCreation(); }
+    return;
   }
   if(h==='#/data'){ v_current='data'; showView('data'); window.scrollTo({top:0}); return; }
   v_current='home'; showView('home');
   if(h==='#/works') $('works').scrollIntoView(); else window.scrollTo({top:0});
 }
-let v_current = null;
+let v_current = null, CREATING = false;
+/** תהליך היצירה אחרי גרירת קובץ: הגרף נמתח שכבה אחר שכבה, והשרטוט נבנה אלמנט אחר אלמנט. */
+function playCreation(){
+  const st=document.querySelector('.stage');
+  st.classList.remove('creating'); void st.offsetWidth;
+  document.querySelectorAll('#viz path').forEach((p,i)=>{ p.setAttribute('pathLength','1'); p.style.animationDelay=(i*0.35)+'s'; });
+  [...$('arch').children].forEach((c,i)=>{ c.style.animationDelay=(0.6+Math.min(i,160)*0.012)+'s'; });
+  st.classList.add('creating');
+  setStatus('היצירה נבנתה מהקובץ. לחצו נגן כדי לשמוע אותה.','ok');
+  setTimeout(()=>st.classList.remove('creating'), 4800);
+}
 /** הצבעים בשרטוט ובגרף נקראים מהטוקנים, ולכן מציירים מחדש אחרי החלפת חדר. */
 function redrawForTheme(){ if(DATA){ drawViz(); drawArch(); } }
 
