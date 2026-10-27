@@ -357,58 +357,102 @@ function buildScore(S){
   const events = [];
   const series = {};
   const push = e => events.push(e);
+  const R = S.root;
 
-  /* ---- שכבה 1 · מנגינה ---- */
+  /* ---- המסגרת ההרמונית ----
+     האקורדים נבחרים ממהלך תונאלי, לא מכל צירוף בסולם: טוניקה, סובדומיננטה,
+     דומיננטה והמקבילה. כך כל מעבר נשמע "נכון" לאוזן, והנתונים קובעים איזה
+     תפקיד מגיע בכל תיבה. פנטטוני וכרומטי נשענים על המז'ורי; דוריאני על המינורי. */
+  const KEY = (S.scale==='minor'||S.scale==='dorian') ? SCALES[S.scale] : SCALES.major;
+  const ORDER = (S.scale==='minor'||S.scale==='dorian') ? [3,5,0,6] : [5,3,0,4];  // נמוך אל גבוה: מעומעם אל בהיר
+  const TONIC = 0;
+  const B = Math.max(2, Math.min(8, Math.round(n/16)));             // נקודות בתיבה
+  const bars = Math.ceil(n/B);
+  const triad = d => [0,2,4].map(k=>{ const j=d+k; return KEY[j%7] + 12*Math.floor(j/7); });
+
+  const harRaw = seriesFor(S.har.src, S.smooth) || seriesFor('auto:smooth', S.smooth);
+  const nh = normOf(deriveSmooth(harRaw));
+  const chordOf = [];                                               // דרגה לכל תיבה
+  for(let k=0;k<bars;k++){
+    const seg = nh.slice(k*B, Math.min(n,(k+1)*B));
+    const lvl = seg.reduce((x,y)=>x+y,0)/seg.length;
+    chordOf.push(ORDER[Math.min(ORDER.length-1, Math.floor(lvl*ORDER.length))]);
+  }
+  // אקורד שחוזר שלוש תיבות ברצף עובר לשכן שלו במהלך: הנתונים עדיין מכוונים, אבל המוזיקה לא נתקעת
+  for(let k=2;k<bars;k++){
+    if(chordOf[k]===chordOf[k-1] && chordOf[k]===chordOf[k-2]){
+      const j = ORDER.indexOf(chordOf[k]);
+      chordOf[k] = ORDER[j>0 ? j-1 : j+1];
+    }
+  }
+  chordOf[0] = TONIC;                                               // פותחים בבית
+  if(bars>2){ chordOf[bars-2] = (S.scale==='minor'||S.scale==='dorian') ? 6 : 4; chordOf[bars-1] = TONIC; }  // קדנצה
+  const pcsOf = k => triad(chordOf[k]).map(x=>((x+R)%12+12)%12);
+
+  /** התו הקרוב ביותר ל-m שהוא צליל של האקורד. */
+  const nearestChordTone = (m, pcs) => {
+    let best=m, bd=99;
+    for(let d=-6; d<=6; d++){ const c=m+d; if(pcs.includes(((c%12)+12)%12) && Math.abs(d)<bd){ bd=Math.abs(d); best=c; } }
+    return best;
+  };
+
+  /* ---- שכבה 1 · מנגינה: הגובה הוא הערך; בפעמה חזקה נוחתת על צליל האקורד ---- */
   const melRaw = seriesFor(S.mel.src, S.smooth);
   if(S.mel.on && melRaw){
     series.mel = melRaw;
     const nm = normOf(melRaw);
+    let prev = null;
     for(let i=0;i<n;i++){
-      push({t:i*step, layer:'mel', i,
-        midi:[degToMidi(scale, 52+S.root, normToSteps(nm[i], scale, 2))],
-        dur:step*S.legato, vel:0.55+0.35*nm[i]});
+      const k = Math.floor(i/B), pcs = pcsOf(k);
+      let m = degToMidi(scale, 60+R, normToSteps(nm[i], scale, 1.5));   // כל השכבות על אותה טוניקה (דו + R)
+      const strong = (i % B === 0) || (B>=4 && i % B === B/2);
+      // חזק: צליל אקורד. חלש: מותר צליל מעבר, אבל לא חצי טון מול האקורד
+      const clash = pcs.some(pc=>{ const d=Math.abs(((m%12)+12)%12 - pc); return d===1 || d===11; });
+      if(strong || clash) m = nearestChordTone(m, pcs);
+      const same = m === prev; prev = m;
+      push({t:i*step, layer:'mel', i, midi:[m],
+        dur:Math.min(step*S.legato, step*2.2), vel:(strong?0.62:0.48)*(same?0.7:1)});
     }
   }
 
-  /* ---- שכבה 2 · הרמוניה: טריאדה מהסולם, לא עוד קו יחיד ---- */
-  const harRaw = seriesFor(S.har.src, S.smooth);
-  if(S.har.on && harRaw){
+  /* ---- שכבה 2 · הרמוניה: אקורד בכל תיבה, בהולכת קולות קרובה ---- */
+  if(S.har.on && seriesFor(S.har.src, S.smooth)){
     series.har = harRaw;
-    const nh = normOf(deriveSmooth(harRaw));
-    const every = Math.max(2, Math.round(n/16));
-    for(let i=0;i<n;i+=every){
-      const s0 = normToSteps(nh[i], scale, 1.5);
-      push({t:i*step, layer:'har',
-        midi:[s0, s0+2, s0+4].map(s=>degToMidi(scale, 45+S.root, s)),
-        dur:step*every*1.5, vel:0.4});
+    let last = null;
+    for(let k=0;k<bars;k++){
+      const base = triad(chordOf[k]).map(x=>x+R+48);
+      // מבין שלוש ההיפוכים, זה שהכי קרוב לאקורד הקודם: הקולות זזים מעט ולא קופצים
+      const invs = [base, [base[1],base[2],base[0]+12], [base[2]-12,base[0],base[1]]];
+      const pick = !last ? invs[0] : invs.reduce((a,c)=>{
+        const dist = v => v.reduce((s,x,j)=>s+Math.abs(x-last[j]),0);
+        return dist(c)<dist(a)?c:a; });
+      last = pick;
+      push({t:k*B*step, layer:'har', midi:pick, dur:B*step*1.05, vel:0.34});
     }
   }
 
-  /* ---- שכבה 3 · ביס ---- */
+  /* ---- שכבה 3 · ביס: יסוד האקורד; המגמה בוחרת יסוד, טרצה או קווינטה ---- */
   const basRaw = seriesFor(S.bas.src, S.smooth);
   if(S.bas.on && basRaw){
     series.bas = basRaw;
     const nb = normOf(deriveSmooth(basRaw));
     if(S.bas.inst === 'drone'){
-      // דרון: תו יסוד אחד לכל אורך היצירה.
-      const med = nb.slice().sort((a,b)=>a-b)[Math.floor(n/2)];
-      push({t:0, layer:'bas', midi:[degToMidi(scale, 33+S.root, normToSteps(med, scale, 1))],
-        dur:S.duration, vel:0.5});
+      push({t:0, layer:'bas', midi:[36+R, 43+R], dur:S.duration, vel:0.42});
     } else {
-      const every = Math.max(1, Math.round(n/32));
-      for(let i=0;i<n;i+=every){
-        push({t:i*step, layer:'bas',
-          midi:[degToMidi(scale, 33+S.root, normToSteps(nb[i], scale, 1))],
-          dur:step*every*1.8, vel:0.6});
+      for(let k=0;k<bars;k++){
+        const t3 = triad(chordOf[k]);
+        const lvl = nb[Math.min(n-1,k*B)];
+        const tone = lvl>0.75 && k>0 && k<bars-1 ? t3[2] : t3[0];      // רק מגמה גבוהה מזיזה את הביס לקווינטה
+        push({t:k*B*step, layer:'bas', midi:[((tone%12)+12)%12 + 36 + R - (((tone%12)+R)>=12?12:0)],
+          dur:B*step*0.98, vel:0.5});
       }
     }
   }
 
   /* ---- שכבה 4 · קצב: נקודות המפנה של הדאטה הן הגרוב ----
-     חבטה נורית רק במקסימום מקומי של השינוי — כלומר בנקודת מפנה — ולא בכל
-     צעד שחוצה סף. ההבדל מהותי: לגל חלק יש נגזרת גדולה אך חלקה, ובלי תנאי
-     המקסימום המקומי הוא היה מקבל חבטה כמעט בכל צעד ונשמע צפוף יותר מדאטה
-     סוער באמת. עם התנאי — חלק נשאר דליל, סוער נעשה צפוף.                */
+     חבטה נורית רק במקסימום מקומי של השינוי, כלומר בנקודת מפנה, ולא בכל
+     צעד שחוצה סף. לגל חלק יש נגזרת גדולה אך חלקה, ובלי תנאי המקסימום
+     המקומי הוא היה מקבל חבטה כמעט בכל צעד. עם התנאי: חלק נשאר דליל, סוער נעשה צפוף. */
   const perRaw = seriesFor(S.per.src, S.smooth);
   const hits = [];
   if(S.per.on && perRaw){
@@ -423,14 +467,14 @@ function buildScore(S){
       const rel = (d[i]-S.thresh)/((1-S.thresh) || 1);
       const strong = rel > 0.45;
       push({t:i*step, layer:'per', i, drum:strong?'low':'high',
-        dur:strong?0.28:0.06, vel:0.35+0.55*Math.min(1,rel)});
+        dur:strong?0.28:0.06, vel:0.28+0.4*Math.min(1,rel)});
       hits.push(i);
     }
   }
 
   events.sort((a,b)=>a.t-b.t);
-  const tail = 2.6;
-  return {events, series, hits, n, step, duration:S.duration, total:S.duration+tail};
+  const tail = 3.2;
+  return {events, series, hits, n, step, bars, B, chords:chordOf, duration:S.duration, total:S.duration+tail};
 }
 
 /* ==========================================================================
@@ -439,16 +483,16 @@ function buildScore(S){
                             └→ send   → Reverb ┘ (רטוב)
    ========================================================================== */
 const LAYERS = [
-  {k:'mel', label:'שכבה 1 · מנגינה', short:'מנגינה', color:'--gold',   vol:-3,  pan:0,     rev:0.30,
-   about:'הקו שהאוזן עוקבת אחריו. כל נקודה בדאטה היא צליל אחד, וגובהו הוא הערך. ' +
+  {k:'mel', label:'שכבה 1 · מנגינה', short:'מנגינה', color:'--gold',   vol:-5,  pan:0,     rev:0.35,
+   about:'הקו שהאוזן עוקבת אחריו. כל נקודה היא צליל אחד וגובהו הוא הערך; בפעמה חזקה הוא נוחת על צליל של האקורד. ' +
          'תנו לה את העמודה שהיא לב הסיפור, זו שהייתם מציירים בגרף.'},
-  {k:'har', label:'שכבה 2 · הרמוניה', short:'הרמוניה', color:'--rose',  vol:-13, pan:-0.30, rev:0.40,
-   about:'אקורדים איטיים שמתחלפים כ-16 פעמים לאורך היצירה. הם נותנים את "מזג האוויר" הרגשי. ' +
+  {k:'har', label:'שכבה 2 · הרמוניה', short:'הרמוניה', color:'--rose',  vol:-11, pan:-0.25, rev:0.45,
+   about:'אקורד בכל תיבה, מתוך מהלך תונאלי: טוניקה, סובדומיננטה, דומיננטה והמקבילה, ובסוף חזרה הביתה. הנתונים בוחרים איזה תפקיד מגיע בכל תיבה. ' +
          'עמודה שנייה כאן יוצרת מתח מעניין: שני מדדים שלא זזים יחד נשמעים כמו דיאלוג.'},
   {k:'bas', label:'שכבה 3 · ביס',     short:'ביס',     color:'--teal',  vol:-8,  pan:0.10,  rev:0.22,
-   about:'היסוד. עוקב אחרי המגמה הרחבה ומתעלם מרעש. "דרון" מחזיק צליל אחד לאורך כל היצירה, ' +
+   about:'היסוד. יושב על שורש האקורד, ועולה לקווינטה רק כשהמגמה גבוהה. "דרון" מחזיק צליל אחד לאורך כל היצירה, ' +
          'בחירה טובה כשרוצים שהמנגינה תרחף מעל משהו יציב.'},
-  {k:'per', label:'שכבה 4 · קצב',     short:'קצב',     color:'--violet',vol:-11, pan:0.28,  rev:0.14,
+  {k:'per', label:'שכבה 4 · קצב',     short:'קצב',     color:'--violet',vol:-14, pan:0.2,  rev:0.2,
    about:'חבטה בכל נקודת מפנה, לא בכל צעד. דאטה חלק יישאר כמעט שקט, דאטה סוער ייתן גרוב צפוף. ' +
          'זו השכבה שמספרת עד כמה הנתונים "מתנהגים יפה".'}
 ];
@@ -466,23 +510,29 @@ const INSTRUMENTS = {
 
 /** בונה נוד כלי בהקשר Tone הנוכחי (חי או offline). מחזיר {node, chain[]}. */
 function makeInst(kind){
+  // כל הכלים רכים: גלים עגולים, התקפה לא חדה, ומסנן שמוריד את הצרימה מעל 2-3 קה"ץ.
   const poly = (cls, opts) => { const p = new Tone.PolySynth(cls, opts); p.maxPolyphony = 24; return p; };
+  const lp = f => new Tone.Filter({frequency:f, type:'lowpass', rolloff:-24});
   switch(kind){
-    case 'piano':   return {node:poly(Tone.Synth,{oscillator:{type:'triangle'},envelope:{attack:.005,decay:.4,sustain:.1,release:1.2}}),chain:[]};
-    case 'harp':    return {node:poly(Tone.Synth,{oscillator:{type:'sine'},envelope:{attack:.005,decay:1.0,sustain:0,release:1.5}}),chain:[]};
-    case 'marimba': return {node:poly(Tone.Synth,{oscillator:{type:'sine'},envelope:{attack:.003,decay:.5,sustain:0,release:.4}}),chain:[]};
-    case 'glass':   return {node:poly(Tone.FMSynth,{harmonicity:3,modulationIndex:6,envelope:{attack:.005,decay:1.4,sustain:0,release:1.6}}),chain:[]};
-    case 'cello':   return {node:poly(Tone.Synth,{oscillator:{type:'sawtooth'},envelope:{attack:.25,decay:.2,sustain:.85,release:.6}}),
-                            chain:[new Tone.Filter(1600,'lowpass')]};
-    case 'choir':   return {node:poly(Tone.Synth,{oscillator:{type:'sine'},envelope:{attack:.4,decay:.3,sustain:.9,release:1.4}}),
-                            chain:[new Tone.Chorus(3,2.5,.4).start()]};
-    case 'voxOo':   return {node:poly(Tone.Synth,{oscillator:{type:'sine4'},envelope:{attack:.3,decay:.2,sustain:.85,release:1.2}}),
-                            chain:[new Tone.Filter(900,'lowpass')]};
-    case 'pad':     return {node:poly(Tone.Synth,{oscillator:{type:'sawtooth'},envelope:{attack:.8,decay:.4,sustain:.9,release:2.0}}),
-                            chain:[new Tone.Filter(700,'lowpass')]};
-    case 'upright': return {node:poly(Tone.Synth,{oscillator:{type:'triangle'},envelope:{attack:.005,decay:.5,sustain:0,release:.5}}),chain:[]};
-    case 'drone':   return {node:poly(Tone.Synth,{oscillator:{type:'sine'},envelope:{attack:1.2,decay:.1,sustain:1,release:2}}),chain:[]};
-    default:        return {node:poly(Tone.Synth,{oscillator:{type:'triangle'}}),chain:[]};
+    case 'piano':   return {node:poly(Tone.FMSynth,{harmonicity:2,modulationIndex:1.4,oscillator:{type:'sine'},
+                              envelope:{attack:.004,decay:1.1,sustain:.12,release:1.4},modulationEnvelope:{attack:.002,decay:.4,sustain:0,release:.3}}),
+                            chain:[lp(3200)]};
+    case 'harp':    return {node:poly(Tone.Synth,{oscillator:{type:'triangle'},envelope:{attack:.004,decay:1.6,sustain:0,release:1.8}}),chain:[lp(2600)]};
+    case 'marimba': return {node:poly(Tone.FMSynth,{harmonicity:4,modulationIndex:1.2,oscillator:{type:'sine'},
+                              envelope:{attack:.002,decay:.6,sustain:0,release:.5},modulationEnvelope:{attack:.001,decay:.15,sustain:0,release:.1}}),chain:[lp(2400)]};
+    case 'glass':   return {node:poly(Tone.FMSynth,{harmonicity:3.01,modulationIndex:2,envelope:{attack:.004,decay:1.8,sustain:0,release:2.2},
+                              modulationEnvelope:{attack:.002,decay:.6,sustain:0,release:.4}}),chain:[lp(4200)]};
+    case 'cello':   return {node:poly(Tone.Synth,{oscillator:{type:'fatsawtooth',count:3,spread:14},envelope:{attack:.35,decay:.3,sustain:.8,release:1.1}}),
+                            chain:[lp(1100), new Tone.Vibrato(5,.06)]};
+    case 'choir':   return {node:poly(Tone.Synth,{oscillator:{type:'fatsine',count:3,spread:18},envelope:{attack:.6,decay:.3,sustain:.85,release:1.8}}),
+                            chain:[lp(1800), new Tone.Chorus(1.5,3.5,.35).start()]};
+    case 'voxOo':   return {node:poly(Tone.Synth,{oscillator:{type:'fatsine',count:2,spread:10},envelope:{attack:.35,decay:.2,sustain:.8,release:1.4}}),
+                            chain:[lp(900)]};
+    case 'pad':     return {node:poly(Tone.Synth,{oscillator:{type:'fattriangle',count:3,spread:22},envelope:{attack:1.1,decay:.6,sustain:.85,release:2.6}}),
+                            chain:[lp(1300), new Tone.Chorus(.8,4,.3).start()]};
+    case 'upright': return {node:poly(Tone.Synth,{oscillator:{type:'sine'},envelope:{attack:.006,decay:.7,sustain:.15,release:.6}}),chain:[lp(900)]};
+    case 'drone':   return {node:poly(Tone.Synth,{oscillator:{type:'fatsine',count:2,spread:6},envelope:{attack:2,decay:.1,sustain:1,release:3}}),chain:[lp(700)]};
+    default:        return {node:poly(Tone.Synth,{oscillator:{type:'triangle'}}),chain:[lp(2000)]};
   }
 }
 
@@ -491,9 +541,9 @@ function makePerc(kind){
   const parts = [];
   const mk = {
     kit: () => ({
-      low:  new Tone.MembraneSynth({pitchDecay:.05,octaves:5,envelope:{attack:.001,decay:.4,sustain:0}}),
-      high: new Tone.MetalSynth({frequency:300,envelope:{attack:.001,decay:.07,release:.01},
-              harmonicity:5.1,modulationIndex:32,resonance:4000,octaves:1.5,volume:-16})
+      low:  new Tone.MembraneSynth({pitchDecay:.04,octaves:3,envelope:{attack:.002,decay:.35,sustain:0},volume:-4}),
+      // מברשת רכה במקום מצילה מתכתית: רעש ורוד מסונן
+      high: new Tone.NoiseSynth({noise:{type:'pink'},envelope:{attack:.004,decay:.12,sustain:0},volume:-18})
     }),
     taiko: () => {
       const d = new Tone.MembraneSynth({pitchDecay:.12,octaves:3,envelope:{attack:.001,decay:.7,sustain:0}});
@@ -504,8 +554,7 @@ function makePerc(kind){
       return {low:s, high:s};
     },
     wood: () => {
-      const w = new Tone.MetalSynth({frequency:520,envelope:{attack:.001,decay:.05,release:.01},
-                  harmonicity:8,modulationIndex:20,resonance:2600,octaves:1,volume:-14});
+      const w = new Tone.MembraneSynth({pitchDecay:.008,octaves:1.5,envelope:{attack:.001,decay:.09,sustain:0},volume:-10});
       return {low:w, high:w};
     }
   }[kind] || mk_kit_fallback;
@@ -518,7 +567,7 @@ function makePerc(kind){
     hit(time, vel, which){
       const s = which==='low' ? g.low : g.high;
       // MembraneSynth דורש תו; MetalSynth ו-NoiseSynth לא.
-      if(s instanceof Tone.MembraneSynth) s.triggerAttackRelease(which==='low'?'C1':'G1', .3, time, vel);
+      if(s instanceof Tone.MembraneSynth) s.triggerAttackRelease(kind==='wood' ? 'E5' : (which==='low'?'C1':'G1'), .3, time, vel);
       else s.triggerAttackRelease(.06, time, vel);
     },
     connect(dest){ parts.forEach(p=>p.connect(dest)); },
@@ -531,8 +580,11 @@ function makePerc(kind){
  * פועל זהה חי ו-offline, ולכן הייצוא נשמע כמו הנגינה.
  */
 async function buildGraph(S){
+  // שרשרת המאסטר: מדחס עדין שמחבר את השכבות, מדף גבוה שמרכך, ולימיטר שמונע עיוות
   const master = new Tone.Limiter(-1).toDestination();
-  const reverb = new Tone.Reverb({decay:3.2, wet:1, preDelay:0.02}).connect(master);
+  const soften = new Tone.EQ3({low:1, mid:0, high:-4}).connect(master);
+  const glue = new Tone.Compressor({threshold:-20, ratio:2.2, attack:.03, release:.25}).connect(soften);
+  const reverb = new Tone.Reverb({decay:4.2, wet:1, preDelay:0.03}).connect(glue);
   await reverb.generate();                       // חובה — אחרת הצלילים הראשונים יוצאים יבשים
 
   const ch = {};
@@ -541,7 +593,7 @@ async function buildGraph(S){
     const pan  = new Tone.Panner(L.pan);
     const send = new Tone.Gain(L.rev);
     vol.connect(pan);
-    pan.connect(master);                         // יבש
+    pan.connect(glue);                           // יבש
     pan.connect(send); send.connect(reverb);     // רטוב
     let inst = null, perc = null;
     if(L.k === 'per'){
@@ -577,7 +629,7 @@ async function buildGraph(S){
         if(c.perc) c.perc.dispose();
         [c.vol,c.pan,c.send].forEach(x=>{try{x.dispose();}catch(e){}});
       }
-      try{reverb.dispose();master.dispose();}catch(e){}
+      try{reverb.dispose();glue.dispose();soften.dispose();master.dispose();}catch(e){}
     }
   };
 }
@@ -737,7 +789,7 @@ function hideCursor(){
    אותה סדרת מספרים, מדיום אחר. המוזיקה קוראת אותה כזמן; כאן היא נקראת כמקום.
    הטיפולוגיה היא השאלה שמפנים לנתונים: האם הם מבנה, קרקע, מקצב, או ערימה.
    ========================================================================== */
-const AW=520, AH=340, AP={t:22,r:20,b:34,l:20};
+const AW=600, AH=600;
 const archSvg = document.getElementById('arch');
 
 /** מדגם מחדש למספר יחידות מבוקש, ומנרמל 0..1. */
@@ -755,13 +807,13 @@ function ael(tag, attrs){
   return e;
 }
 
-/** מילוי לפי הגימור שנבחר — קו, מסה, או הצללה. */
-function archSkin(fill, color, i){
-  if(fill==='line')  return {fill:'none', 'fill-opacity':0, stroke:color, 'stroke-width':1.2};
-  if(fill==='hatch') return {fill:'url(#ahatch)', stroke:color, 'stroke-width':.9};
-  return {fill:color, 'fill-opacity':(0.20 + 0.10*((i%3))).toFixed(2), stroke:color, 'stroke-width':1};
-}
+/* ---- שפת השרטוט: משקלי קו כמו בגיליון אדריכלי ---- */
+const INK='#1c1e22', GREY='#8a8d93', PAPER='#fbfaf7';
+const LW = {cut:2.2, outline:1.1, proj:.6, fine:.3, dim:.4};
+const TYPE_NAMES = {elevation:'חזית', section:'חתך', colonnade:'קולונדה', stack:'מסה'};
+const AFONT = "'IBM Plex Mono', ui-monospace, monospace";
 
+/** גיליון: נייר, צירים ממוספרים, קו קרקע עם הצללת אדמה, מפלסים, קו מידה, קנה מידה וכותרת. */
 function drawArch(){
   archSvg.innerHTML='';
   const canDraw = !!DATA;
@@ -773,115 +825,171 @@ function drawArch(){
   const prop  = +$('archProp').value;
   const depth = +$('archDepth').value;
   const fill  = $('archFill').value;
-
   const S = archSeries(bays);
   if(!S) return;
 
-  // הגדרות משותפות: הצללה, וקרקע
-  const defs = ael('defs',{});
-  const hatch = ael('pattern',{id:'ahatch',width:6,height:6,patternUnits:'userSpaceOnUse',
-    patternTransform:'rotate(45)'});
-  hatch.appendChild(ael('line',{x1:0,y1:0,x2:0,y2:6,stroke:css('--rose'),'stroke-width':1,'stroke-opacity':.5}));
-  defs.appendChild(hatch); archSvg.appendChild(defs);
+  const put=(tag,attrs,parent)=>{ const e=ael(tag,attrs); (parent||archSvg).appendChild(e); return e; };
+  const txt=(x,y,t,attrs)=>{ const e=put('text',{x,y,fill:INK,'font-size':10,'font-family':AFONT,...attrs}); e.textContent=t; return e; };
 
-  const x0=AP.l, x1=AW-AP.r, y0=AP.t, y1=AH-AP.b;
-  const W=x1-x0, H=y1-y0;
-  const rose=css('--rose'), teal=css('--teal'), dim=css('--dim'), gold=css('--gold');
+  // הגדרות: הצללת אדמה, הצללת חתך, ומילוי מסה
+  const defs=put('defs',{});
+  const pat=(id,ang,gap,w,col)=>{ const p=ael('pattern',{id,width:gap,height:gap,patternUnits:'userSpaceOnUse',patternTransform:`rotate(${ang})`});
+    p.appendChild(ael('line',{x1:0,y1:0,x2:0,y2:gap,stroke:col,'stroke-width':w})); defs.appendChild(p); };
+  pat('earth',45,7,.5,GREY); pat('poche',45,3,.6,INK); pat('ahatch',-45,5,.35,INK);
 
-  // שכבות עומק — עותקים נסוגים שנותנים מרחב, לא רק אפקט
-  for(let d=depth; d>=1; d--){
-    const off=d*9, fade=(0.30/d).toFixed(2);
-    drawArchBody(type, S, {x0:x0+off, x1:x1+off, y0:y0-off*0.5, y1:y1-off*0.5,
-      W, H, prop, fill:'solid', color:teal, opacity:fade, ghost:true});
+  put('rect',{x:0,y:0,width:AW,height:AH,fill:PAPER});
+
+  const x0=56, x1=AW-56, gy=430, top=96;          // אזור השרטוט וקו הקרקע
+  const W=x1-x0, Hmax=(gy-top)*Math.min(1.25,prop);
+  const n=S.norm.length, bw=W/n;
+  const g={x0,x1,gy,top,W,Hmax,n,bw,fill,type,prop};
+
+  // צירים: קו נקודה-קו ובועה ממוספרת, כל כמה יחידות לפי הצפיפות
+  const every = Math.max(1, Math.round(n/8));
+  const axes=put('g',{stroke:GREY,'stroke-width':LW.fine,'stroke-dasharray':'14 3 2 3'});
+  let label=1;
+  for(let i=0;i<=n;i+=every){
+    const x=x0+i*bw;
+    put('line',{x1:x,y1:top-18,x2:x,y2:gy+8},axes);
+    put('circle',{cx:x,cy:top-30,r:9,fill:PAPER,stroke:INK,'stroke-width':LW.proj});
+    txt(x,top-26.5,String(label++),{'text-anchor':'middle','font-size':9});
   }
-  drawArchBody(type, S, {x0,x1,y0,y1,W,H,prop,fill,color:rose,opacity:1,ghost:false});
 
-  // קו אופק — הקרקע שעליה הכול עומד
-  archSvg.appendChild(ael('line',{x1:x0-6,y1:y1,x2:x1+6,y2:y1,
-    stroke:dim,'stroke-width':1,'stroke-opacity':.55}));
+  // שכבות עומק: מבנים ברקע, קו מקווקו אפור, מוסטים מעלה ושמאלה
+  for(let d=depth; d>=1; d--){
+    const gg={...g, x0:x0-d*10, x1:x1-d*10, gy:gy-d*12, ghost:true};
+    drawArchBody(type, S, gg, put);
+  }
+  drawArchBody(type, S, {...g, ghost:false}, put);
 
-  // סרגל: מה מייצג הגובה
-  const FONT='Assistant, system-ui, sans-serif';
-  const lab = ael('text',{x:x0,y:AH-12,fill:dim,'font-size':10,'font-family':FONT,direction:'rtl'});
-  lab.textContent = `${bays} יחידות · ${DATA.columns.find(c=>c.numeric).name}`;
-  archSvg.appendChild(lab);
+  // קרקע: קו חתך עבה והצללת אדמה מתחתיו (בחתך הקרקע עצמה היא הנתונים, ולכן נמתחת שם)
+  if(type!=='section'){
+    put('rect',{x:x0-24,y:gy,width:W+48,height:16,fill:'url(#earth)'});
+    put('line',{x1:x0-24,y1:gy,x2:x1+24,y2:gy,stroke:INK,'stroke-width':LW.cut});
+  }
+
+  // קו הנתונים: הצבע היחיד בשרטוט, כדי שהקשר למנגינה יישאר גלוי
+  const vals=S.norm, yOf=v=>gy-(type==='section'?0.55:1)*v*Hmax;
+  if(type==='elevation' || type==='section'){   // בקולונדה ובמסה הקורה והתקרות הן כבר קו הנתונים
+    let dd=''; vals.forEach((v,i)=>{ dd+=(i?' L':'M')+(x0+i*bw+bw/2).toFixed(1)+' '+(yOf(v)-(type==='section'?0:6)).toFixed(1); });
+    put('path',{d:dd,fill:'none',stroke:css('--gold'),'stroke-width':1.2,'stroke-dasharray':'3 3',opacity:.9});
+  }
+
+  // מפלסים: ±0.00 ושיא, משולש מפלס וקו מקווקו
+  const level=(y,t)=>{
+    put('line',{x1:x1+4,y1:y,x2:x1+40,y2:y,stroke:INK,'stroke-width':LW.dim});
+    put('path',{d:`M ${x1+14} ${y} l -5 -8 h 10 z`,fill:PAPER,stroke:INK,'stroke-width':LW.dim});
+    txt(x1+42,y+3.5,t,{'font-size':8.5,'text-anchor':'start',direction:'ltr'});
+  };
+  const peak = type==='section' ? gy-0.55*Hmax : gy-Hmax;
+  level(gy,'±0.00'); level(peak,'+'+(Hmax/6).toFixed(2));
+  put('line',{x1:x0,y1:peak,x2:x1,y2:peak,stroke:GREY,'stroke-width':LW.fine,'stroke-dasharray':'2 3'});
+
+  // קו מידה כולל
+  const dy=gy+38;
+  put('line',{x1:x0,y1:dy,x2:x1,y2:dy,stroke:INK,'stroke-width':LW.dim});
+  [x0,x1].forEach(x=>{ put('line',{x1:x,y1:dy-6,x2:x,y2:dy+6,stroke:INK,'stroke-width':LW.dim});
+                       put('line',{x1:x-4,y1:dy+4,x2:x+4,y2:dy-4,stroke:INK,'stroke-width':LW.proj}); });
+  txt((x0+x1)/2,dy-5,`${n} יחידות`,{'text-anchor':'middle','font-size':9,direction:'rtl'});
+
+  // קנה מידה גרפי
+  const sx=x0, sy=AH-62, seg=24;
+  for(let k=0;k<4;k++) put('rect',{x:sx+k*seg,y:sy,width:seg,height:4,fill:k%2?PAPER:INK,stroke:INK,'stroke-width':LW.dim});
+  ['0','5','10','20'].forEach((t,k)=>txt(sx+(k===3?4:k)*seg,sy+15,t,{'font-size':7.5,'text-anchor':'middle',direction:'ltr'}));
+  txt(sx+4*seg+8,sy+5,'m',{'font-size':7.5,direction:'ltr'});
+
+  // כותרת הגיליון
+  put('line',{x1:x0,y1:AH-34,x2:x1,y2:AH-34,stroke:INK,'stroke-width':LW.proj});
+  const colName = DATA.columns.find(c=>c.numeric).name;
+  txt(x1,AH-18,`${TYPE_NAMES[type]} · ${DATA.title}`.slice(0,64),{'text-anchor':'start','font-size':9,direction:'rtl'});
+  txt(x0,AH-18,'DATASONG  1:500',{'font-size':8,'letter-spacing':'.12em',direction:'ltr'});
 
   writeArchReading(type, S, bays);
 }
 
-/** גוף השרטוט. אותה חתימה לכל הטיפולוגיות, כדי ששכבות העומק יעבדו לכולן. */
-function drawArchBody(type, S, g){
+/** גוף השרטוט לפי הטיפולוגיה. `ghost` מצייר מבנה רקע: קו אפור מקווקו בלבד. */
+function drawArchBody(type, S, g, put){
   const n=S.norm.length, bw=g.W/n;
-  const put=(tag,attrs)=>{
-    const e=ael(tag,attrs);
-    if(g.opacity<1) e.setAttribute('opacity',g.opacity);
-    archSvg.appendChild(e); return e;
-  };
+  const ghost=g.ghost;
+  const stroke = ghost ? GREY : INK;
+  const base = ghost ? {fill:'none',stroke,'stroke-width':LW.fine,'stroke-dasharray':'3 2'} : null;
+  const skin = (w)=> ghost ? base :
+    g.fill==='line'  ? {fill:PAPER,stroke,'stroke-width':w||LW.outline} :
+    g.fill==='hatch' ? {fill:'url(#ahatch)',stroke,'stroke-width':w||LW.outline} :
+                       {fill:'#e7e4de',stroke,'stroke-width':w||LW.outline};
+  const FLOOR=9;                                   // גובה קומה בשרטוט
 
   if(type==='elevation'){
-    // כל נקודה היא מבנה. הערך הוא הגובה, והרוחב אחיד — מקצב עירוני.
+    // כל נקודה היא בניין: מעטפת, קווי קומות, ושורת מליונים דקה בכל קומה
     S.norm.forEach((v,i)=>{
-      const h=Math.max(4, v*g.H*g.prop);
-      const x=g.x0+i*bw, y=g.y1-h;
-      put('rect',{x:x+bw*0.12,y,width:Math.max(1,bw*0.76),height:h,
-        ...archSkin(g.fill,g.color,i)});
-      if(!g.ghost && g.fill!=='line' && h>26 && bw>7){
-        // פתחים — רק כשיש מקום אמיתי, אחרת זה רעש
-        const rows=Math.floor(h/13), cols=Math.max(1,Math.floor(bw*0.76/7));
-        for(let r=0;r<rows;r++) for(let c=0;c<cols;c++)
-          put('rect',{x:x+bw*0.12+3+c*7, y:y+6+r*13, width:3, height:5,
-            fill:'#0e1418','fill-opacity':.55,stroke:'none'});
-      }
+      const h=Math.max(FLOOR*2, Math.round((0.12+0.88*v)*g.Hmax/FLOOR)*FLOOR);
+      const x=g.x0+i*bw+bw*0.06, w=bw*0.88, y=g.gy-h;
+      put('rect',{x,y,width:w,height:h,...skin()});
+      if(ghost) return;
+      put('line',{x1:x-1,y1:y,x2:x+w+1,y2:y,stroke:INK,'stroke-width':LW.cut});      // מעקה גג
+      const gl=put('g',{stroke:INK,'stroke-width':LW.fine,opacity:.75});
+      for(let fy=g.gy-FLOOR; fy>y+2; fy-=FLOOR) put('line',{x1:x,y1:fy,x2:x+w,y2:fy},gl);
+      const cols=Math.max(1,Math.floor(w/6));
+      for(let c=1;c<cols;c++){ const mx=x+c*w/cols; put('line',{x1:mx,y1:y+FLOOR*.5,x2:mx,y2:g.gy-FLOOR*.6},gl); }
     });
   }
 
   else if(type==='section'){
-    // הנתונים הם קו הקרקע. המבנה יושב עליה ומגיב לה.
-    let d=`M ${g.x0} ${g.y1}`;
-    S.norm.forEach((v,i)=>{ d+=` L ${(g.x0+i*bw+bw/2).toFixed(1)} ${(g.y1-v*g.H*0.55*g.prop).toFixed(1)}`; });
-    d+=` L ${g.x1} ${g.y1} Z`;
-    put('path',{d,fill:g.fill==='line'?'none':'url(#ahatch)',stroke:g.color,'stroke-width':1.3});
-    if(g.ghost) return;
-    // נפחים בנויים על הקרקע, גובהם לפי חדות השינוי המקומי
-    for(let i=1;i<n-1;i++){
+    // החתך: הנתונים הם קו הקרקע. אדמה בהצללה, קו חתך עבה, ומבנים שיושבים על הקרקע
+    const yOf=v=>g.gy-v*g.Hmax*0.55;
+    let d=`M ${g.x0-24} ${g.gy+16} L ${g.x0-24} ${yOf(S.norm[0]).toFixed(1)}`;
+    S.norm.forEach((v,i)=>{ d+=` L ${(g.x0+i*bw+bw/2).toFixed(1)} ${yOf(v).toFixed(1)}`; });
+    d+=` L ${g.x1+24} ${yOf(S.norm[n-1]).toFixed(1)} L ${g.x1+24} ${g.gy+16} Z`;
+    put('path',{d,fill:ghost?'none':'url(#earth)',stroke:'none'});
+    let prof=`M ${g.x0-24} ${yOf(S.norm[0]).toFixed(1)}`;
+    S.norm.forEach((v,i)=>{ prof+=` L ${(g.x0+i*bw+bw/2).toFixed(1)} ${yOf(v).toFixed(1)}`; });
+    prof+=` L ${g.x1+24} ${yOf(S.norm[n-1]).toFixed(1)}`;
+    put('path',{d:prof,fill:'none',stroke,'stroke-width':ghost?LW.fine:LW.cut,
+      'stroke-dasharray':ghost?'3 2':'none'});
+    if(ghost) return;
+    // מבנים קטנים רק במקום שבו הקרקע מתכופפת: שם המקום מבקש התערבות
+    for(let i=2;i<n-2;i+=2){
       const slope=Math.abs(S.norm[i+1]-S.norm[i-1]);
-      const h=(0.10+slope*1.5)*g.H*0.5*g.prop;
-      if(h<6 || i%2) continue;
-      const gy=g.y1-S.norm[i]*g.H*0.55*g.prop;
-      put('rect',{x:g.x0+i*bw+bw*0.15,y:gy-h,width:Math.max(1.5,bw*0.7),height:h,
-        ...archSkin(g.fill,g.color,i)});
+      if(slope<0.06) continue;
+      const floors=1+Math.round(slope*10*g.prop);
+      const h=floors*FLOOR, x=g.x0+i*bw, w=bw*1.6, y=yOf(S.norm[i])-h;
+      put('rect',{x,y,width:w,height:h,fill:PAPER,stroke:INK,'stroke-width':LW.outline});
+      put('rect',{x,y,width:w,height:2.2,fill:INK});                                       // תקרה בחתך
+      for(let f=1;f<floors;f++) put('rect',{x,y:y+f*FLOOR,width:w,height:1.4,fill:INK});
     }
   }
 
   else if(type==='colonnade'){
-    // המקצב הופך לעמודים: הערך קובע גובה, והקורה מעליהם עוקבת אחריו.
-    const cap=g.y0+6;
-    let beam=`M ${g.x0} ${cap}`;
+    // עמודים בקצב הנתונים; האפריז שמעליהם נושא את קו הנתונים
+    put('rect',{x:g.x0-10,y:g.gy-6,width:g.W+20,height:6,...(ghost?base:{fill:'url(#poche)',stroke:INK,'stroke-width':LW.proj})}); // סטילובט
+    let beam=''; const tops=[];
     S.norm.forEach((v,i)=>{
-      const h=Math.max(10, (0.35+v*0.65)*g.H*g.prop);
-      const cx=g.x0+i*bw+bw/2, top=g.y1-h;
-      const cw=Math.max(1.6, Math.min(bw*0.34, 9));
-      put('rect',{x:cx-cw/2,y:top,width:cw,height:h,...archSkin(g.fill,g.color,i)});
-      if(!g.ghost && bw>9){
-        put('rect',{x:cx-cw*0.9,y:top-4,width:cw*1.8,height:4,
-          fill:g.color,'fill-opacity':.5,stroke:'none'});   // כותרת
-      }
-      beam+=` L ${cx.toFixed(1)} ${(top-7).toFixed(1)}`;
+      const h=Math.max(30,(0.4+0.6*v)*g.Hmax*0.85);
+      const cx=g.x0+i*bw+bw/2, cw=Math.max(2.4,Math.min(bw*0.22,9)), y=g.gy-6-h;
+      put('rect',{x:cx-cw/2,y,width:cw,height:h,...skin(LW.proj)});
+      if(!ghost){ put('rect',{x:cx-cw*0.9,y:y-3,width:cw*1.8,height:3,fill:INK}); put('rect',{x:cx-cw*0.8,y:g.gy-9,width:cw*1.6,height:3,fill:INK}); }
+      tops.push([cx,y-3]);
     });
-    beam+=` L ${g.x1} ${cap}`;
-    put('path',{d:beam,fill:'none',stroke:g.color,'stroke-width':1.6,'stroke-opacity':.9});
+    tops.forEach(([x,y],i)=>{ beam+=(i?' L':'M')+x.toFixed(1)+' '+y.toFixed(1); });
+    put('path',{d:beam,fill:'none',stroke,'stroke-width':ghost?LW.fine:LW.cut,'stroke-linejoin':'round','stroke-dasharray':ghost?'3 2':'none'});
+    if(!ghost){
+      let b2=''; tops.forEach(([x,y],i)=>{ b2+=(i?' L':'M')+x.toFixed(1)+' '+(y-10).toFixed(1); });
+      put('path',{d:b2,fill:'none',stroke:INK,'stroke-width':LW.proj});
+    }
   }
 
   else { // stack
-    // הרצף נערם לגובה: כל ערך הוא רוחב תקרה, והזמן עולה במקום להתקדם.
-    const fh=g.H/n;
+    // הרצף נערם: כל ערך הוא תקרה; ליבה אנכית; רוחב התקרה הוא הנתון
+    const fh=Math.min(16,(g.gy-g.top)/n), cx=(g.x0+g.x1)/2;
+    if(!ghost){ put('rect',{x:cx-14,y:g.gy-n*fh,width:28,height:n*fh,fill:'url(#poche)',stroke:INK,'stroke-width':LW.proj}); }
     S.norm.forEach((v,i)=>{
-      const w=Math.max(5,(0.16+v*0.84)*g.W*g.prop*0.9);
-      const cx=(g.x0+g.x1)/2, y=g.y1-(i+1)*fh;
-      put('rect',{x:cx-w/2,y,width:w,height:Math.max(1.2,fh*0.82),
-        ...archSkin(g.fill,g.color,i)});
-      if(!g.ghost && fh>7)
-        put('line',{x1:cx-w/2,y1:y,x2:cx+w/2,y2:y,stroke:g.color,'stroke-width':.6,'stroke-opacity':.6});
+      const w=Math.max(30,(0.2+0.8*v)*g.W*0.86*Math.min(1.1,g.prop));
+      const y=g.gy-(i+1)*fh;
+      put('rect',{x:cx-w/2,y,width:w,height:Math.max(1.6,fh*0.18),...(ghost?base:{fill:INK})});
+      if(!ghost && fh>6){
+        put('line',{x1:cx-w/2+3,y1:y+fh*0.18,x2:cx-w/2+3,y2:y+fh,stroke:INK,'stroke-width':LW.fine});
+        put('line',{x1:cx+w/2-3,y1:y+fh*0.18,x2:cx+w/2-3,y2:y+fh,stroke:INK,'stroke-width':LW.fine});
+      }
     });
   }
 }
@@ -1084,8 +1192,7 @@ function setExportEnabled(on){ ['expWav','expPng','expSvg'].forEach(id=>$(id).di
 /** שינוי שמחייב ציור מחדש ובניית תווים מחדש. */
 function onStructuralChange(){
   updateMeta(); syncLabels(); saveSettings();
-  if(playing) stopPlayback();
-  drawViz(); drawArch();
+  drawViz(); drawArch();          // הנגינה לא נעצרת: tuneChanged() מחיל את השינוי מאותה נקודה
 }
 
 async function ensureGraph(S){
@@ -1096,9 +1203,10 @@ async function ensureGraph(S){
   return graph;
 }
 
-async function startPlayback(){
+async function startPlayback(fromFrac, auditionSec){
   if(!DATA) return;
-  if(paused){                                   // המשך מהשהיה
+  fromFrac = (typeof fromFrac==='number' && isFinite(fromFrac)) ? Math.max(0,Math.min(.98,fromFrac)) : 0;
+  if(paused && !fromFrac && !auditionSec){                                   // המשך מהשהיה
     Tone.Transport.start(); playing=true; paused=false;
     btnPlay.disabled=true; btnPause.disabled=false; btnPause.textContent='השהה';
     setPlaying(true);
@@ -1134,9 +1242,13 @@ async function startPlayback(){
   }
   // הסיום נקבע על שעון ה-Transport ולא דרך Tone.Draw: כשהלשונית ברקע
   // requestAnimationFrame נעצר, ואז ה-UI היה נתקע על "מנגן…" לנצח.
-  Tone.Transport.schedule(()=>{ setTimeout(finishPlayback, 0); }, score.duration + 0.05);
+  const offset = fromFrac * score.duration;
+  // האזנה קצרה אחרי שינוי במכוון: כמה שניות מאותה נקודה, ואז עצירה רכה
+  const endAt = auditionSec ? Math.min(score.duration, offset + auditionSec) : score.duration;
+  Tone.Transport.schedule(()=>{ setTimeout(finishPlayback, 0); }, endAt + 0.05);
+  AUDITION = !!auditionSec; PLAY_DUR = score.duration;
 
-  Tone.Transport.start('+0.1');
+  Tone.Transport.start('+0.1', offset);
   playing=true; paused=false;
   setPlayLabel('מנגן'); btnPause.disabled=false; btnStop.disabled=false; setPlaying(true);
 }
@@ -1163,7 +1275,7 @@ function stopPlayback(){
 function finishPlayback(){
   if(graph) graph.release();
   playing=false; paused=false;
-  btnPlay.disabled=!DATA; setPlayLabel('שוב'); setPlaying(false);
+  btnPlay.disabled=!DATA; setPlayLabel(AUDITION ? 'נגן' : 'שוב'); setPlaying(false); AUDITION=false;
   btnPause.disabled=true; btnStop.disabled=true;
   setTimeout(()=>{ if(!playing){ hideCursor(); $('readout').textContent=''; } }, 1400);
   Tone.Transport.stop(); Tone.Transport.cancel(); Tone.Transport.position=0;
@@ -1205,6 +1317,7 @@ function setData(d, libId){
   $('toStudio').href = '#/studio';
 
   saveSettings();
+  captureRep();                         // המצב הזה הוא "המקרה המייצג" של היצירה
 }
 
 /**
@@ -1748,6 +1861,66 @@ document.addEventListener('keydown',e=>{
 window.addEventListener('beforeunload',()=>{ try{Tone.Transport.stop();}catch(e){} });
 
 /* ==========================================================================
+   04-COMPONENTS · H — המכוונים: כל שינוי נחווה מיד, ותמיד אפשר לחזור למקרה המייצג.
+   כלל לכל כלי (ענת, 2026-10-27): מכוון שזז חייב להראות או להשמיע את השינוי שלו,
+   ולידו דרך אחת לחזור לערך שמייצג את היצירה.
+   ========================================================================== */
+let AUDITION=false, PLAY_DUR=0, REP={}, tuneTimer=null;
+const SPACE_IDS=['archType','archBays','archProp','archDepth','archFill'];
+const tuneControls = () => [...$('tune').querySelectorAll('input[id],select[id]')].filter(e=>!['showHelp','applyPreset'].includes(e.id));
+const valOf = e => e.type==='checkbox' ? e.checked : e.value;
+
+/** הערכים שהיצירה נטענה איתם: ברירת המחדל שלה ועוד ההגדרה המומלצת. */
+function captureRep(){ REP={}; tuneControls().forEach(e=>REP[e.id]=valOf(e)); markDiffs(); }
+
+/** מסמן כל מכוון שזז מהמקרה המייצג, ומציע לחזור אליו. */
+function markDiffs(){
+  let any=false;
+  document.querySelectorAll('#tune .field, #tune .voice').forEach(box=>{
+    const ids=[...box.querySelectorAll('input[id],select[id]')].map(e=>e.id).filter(id=>id in REP);
+    const changed=ids.some(id=>String(valOf($(id)))!==String(REP[id]));
+    any = any || changed;
+    box.classList.toggle('changed', changed);
+    let b=box.querySelector(':scope > .rep');
+    if(!b && ids.length){
+      b=document.createElement('button'); b.type='button'; b.className='rep'; b.textContent='מייצג';
+      b.title='חזרה לערך שמייצג את היצירה';
+      b.addEventListener('click',()=>{ ids.forEach(id=>setCtl(id, REP[id])); tuneChanged(ids[0]); });
+      box.appendChild(b);
+    }
+    if(b) b.hidden=!changed;
+  });
+  $('repAll').hidden=!any;
+}
+/** מציב ערך ומפעיל את אותם מאזינים שהמשתמשת מפעילה, כדי שהכול יתעדכן כרגיל. */
+function setCtl(id, v){
+  const e=$(id); if(!e) return;
+  if(e.type==='checkbox') e.checked=v; else e.value=v;
+  e.dispatchEvent(new Event('input',{bubbles:true}));
+  e.dispatchEvent(new Event('change',{bubbles:true}));
+  if(id.startsWith('inst_')) needsRebuild=true;
+}
+
+/** אחרי כל שינוי: מכווני המרחב פותחים את השרטוט; מכווני הצליל מנגנים את השינוי. */
+function tuneChanged(id){
+  markDiffs();
+  if(!DATA) return;
+  if(SPACE_IDS.includes(id)){ if(SPACE_MODE!=='gen') setArchTab('gen'); return; }
+  if(id.startsWith('vol_') && playing && !AUDITION) return;      // העוצמה כבר משתנה חי
+  clearTimeout(tuneTimer);
+  tuneTimer=setTimeout(async ()=>{
+    // מנגן: ממשיכים מאותו מקום בצליל החדש. עצור: האזנה קצרה של ארבע שניות
+    const frac = playing && PLAY_DUR ? Math.min(.98, Tone.Transport.seconds/PLAY_DUR) : 0.3;
+    const wasPlaying = playing && !AUDITION;
+    if(playing || paused) stopPlayback();
+    await startPlayback(frac, wasPlaying ? 0 : 4);
+  }, playing ? 220 : 420);
+}
+$('tune').addEventListener('input', e=>{ if(e.target.id && !['showHelp','applyPreset'].includes(e.target.id)) tuneChanged(e.target.id); });
+$('tune').addEventListener('change', e=>{ if(e.target.tagName==='SELECT' || e.target.type==='checkbox'){ if(!['showHelp','applyPreset'].includes(e.target.id)) tuneChanged(e.target.id); } });
+$('repAll').addEventListener('click',()=>{ Object.keys(REP).forEach(id=>setCtl(id, REP[id])); markDiffs(); tuneChanged('tempo'); });
+
+/* ==========================================================================
    04-COMPONENTS · G — המעטפת: דף הבית, הסטודיו והניווט ביניהם.
    ========================================================================== */
 const pad2 = n => String(n).padStart(2,'0');
@@ -1797,17 +1970,30 @@ function renderGallery(){
   });
 }
 
+/** מסילת היצירות: אנכית בצד שמאל, נעה לאט מעלה ומטה; בכל יצירה קו הנתונים מצייר את עצמו. */
 function renderStrip(){
   const r=$('strip'); r.innerHTML='';
   SAMPLES.forEach((s,i)=>{
     const a=document.createElement('a');
     a.href='#/work/'+s.id;
     a.setAttribute('aria-current', String(activeId==='built:'+s.id));
-    a.innerHTML=`<img loading="lazy" src="${artSrc(s.id,true)}" alt=""><span></span>`;
-    a.querySelector('span').textContent = `${pad2(i+1)} ${s.name}`;
+    a.style.setProperty('--d', (i*0.45)+'s');
+    a.innerHTML=`<span class="rail-img"><img loading="lazy" src="${artSrc(s.id,true)}" alt="">
+        <svg viewBox="0 0 100 40" preserveAspectRatio="none" aria-hidden="true"><path pathLength="1" d="${linePath(melOf(s.id),100,40,5)}"/></svg></span>
+      <span class="rail-name"></span>`;
+    a.querySelector('.rail-name').textContent = `${pad2(i+1)} ${s.name}`;
     r.appendChild(a);
   });
+  requestAnimationFrame(sizeRail);
 }
+/** כמה המסילה צריכה לנוע: ההפרש בין גובה התוכן לגובה החלון שלה. */
+function sizeRail(){
+  const r=$('strip'), box=r.parentElement;
+  const travel=Math.min(0, box.clientHeight - r.scrollHeight);
+  r.style.setProperty('--travel', travel+'px');
+  r.classList.toggle('moving', travel<0);
+}
+window.addEventListener('resize', ()=>{ if(!$('view-studio').hidden) sizeRail(); });
 
 /** הרגע היחיד שזז בלי שנגעו בו: קו הגובה של אשדוד נמתח לאורך תמונת הפתיחה. */
 function drawHeroLine(){
@@ -1834,7 +2020,11 @@ function drawGlyphs(){
 
 /* ---------- מגירת הכיוונון ---------- */
 function setTune(open){
-  $('tune').hidden=!open; $('scrim').hidden=!open;
+  // במחשב המגירה דוחקת את הסטודיו הצידה במקום לכסות אותו: רואים את השינוי בזמן הכיוונון
+  const wide = matchMedia('(min-width:1080px) and (min-height:600px)').matches;
+  $('tune').hidden=!open; $('scrim').hidden=!open || wide;
+  $('app').classList.toggle('tuning', open && wide);
+  requestAnimationFrame(sizeRail);
   $('openTune').setAttribute('aria-expanded', String(open));
   if(open) $('closeTune').focus();
 }
@@ -1851,8 +2041,7 @@ function showView(v){
   ['home','studio','data'].forEach(k=>{ $('view-'+k).hidden = k!==v; });
   $('app').dataset.view=v;
   // הסטודיו הוא חדר האזנה: אפל, כדי שהדימוי והצליל יובילו
-  document.documentElement.classList.toggle('room', v==='studio');
-  document.querySelector('meta[name="theme-color"]').content = v==='studio' ? '#0f1114' : '#e7e5e1';
+  // מסך בהיר אחד לכל האפליקציה (ענת, 2026-10-27): אין מעבר לחדר כהה, ולכן אין קפיצה בין דפים
   document.querySelectorAll('.nav a').forEach(a=>{
     const on = (a.dataset.nav==='home' && v==='home') || (a.dataset.nav==='work' && v==='studio') || (a.dataset.nav==='data' && v==='data');
     if(on) a.setAttribute('aria-current','page'); else a.removeAttribute('aria-current');
@@ -1872,7 +2061,7 @@ function route(){
     }
     if(activeId!==key) return go('#/');           // מזהה שלא קיים: חוזרים לגלריה
     lastStudio=h; v_current='studio'; showView('studio');
-    window.scrollTo({top:0});
+    window.scrollTo({top:0}); requestAnimationFrame(sizeRail);
     redrawForTheme();
     return;
   }

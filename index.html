@@ -60,8 +60,16 @@
       <p class="hero-credit">הדמיה: ביתן הגל, מתוך הסדרה</p>
     </section>
 
+    <section class="works" id="works" aria-labelledby="worksTitle">
+      <div class="works-head">
+        <h2 id="worksTitle" class="sec-title">היצירות</h2>
+        <p>שמונה מאגרים מעולם התכנון. לחיצה פותחת את היצירה בסטודיו.</p>
+      </div>
+      <div class="gallery" id="gallery"></div>
+    </section>
+
     <section class="method" aria-labelledby="methodTitle">
-      <h2 id="methodTitle" class="sec-title">שיטה אחת, שלוש קריאות</h2>
+      <div class="works-head"><h2 id="methodTitle" class="sec-title">הסטודיו: שלוש קריאות</h2><a class="btn btn-solid" href="#/work/01_ashdod_elevation">לפתוח את הסטודיו</a></div>
       <ol class="method-steps">
         <li>
           <svg class="m-glyph" viewBox="0 0 120 60" aria-hidden="true"><g fill="currentColor" id="glyphData"></g></svg>
@@ -81,12 +89,12 @@
       </ol>
     </section>
 
-    <section class="works" id="works" aria-labelledby="worksTitle">
-      <div class="works-head">
-        <h2 id="worksTitle" class="sec-title">היצירות</h2>
-        <p>שמונה מאגרים מעולם התכנון. לחיצה פותחת את היצירה בסטודיו.</p>
+    <section class="data-band" aria-labelledby="dataBandTitle">
+      <div>
+        <h2 id="dataBandTitle" class="sec-title">הנתונים שלך</h2>
+        <p>כל טבלה או עמודת מספרים הופכת ליצירה: צליל, שרטוט ופרשנות. הקובץ נקרא בדפדפן בלבד.</p>
       </div>
-      <div class="gallery" id="gallery"></div>
+      <a class="btn btn-solid" href="#/data">ליצור מהנתונים שלך</a>
     </section>
 
     <section class="essay-band" aria-labelledby="essayTitle">
@@ -95,8 +103,8 @@
         <h2 id="essayTitle">אדריכלות היא מוזיקה שקפאה. מה קורה כשמפשירים אותה בחזרה לנתונים?</h2>
         <p>מאמר מגזין על השיטה: מקסנאקיס ועד העיר שנמדדת, ולמה שלוש קריאות של אותם מספרים מגלות יותר מגרף אחד.</p>
         <div class="hero-cta">
-          <a class="btn btn-solid light" href="article.html">לקריאת המאמר</a>
-          <a class="btn btn-line light" href="datasong-article.pdf" download>הורדת PDF להדפסה</a>
+          <a class="btn btn-solid" href="article.html">לקריאת המאמר</a>
+          <a class="btn btn-line" href="datasong-article.pdf" download>הורדת PDF להדפסה</a>
         </div>
       </div>
     </section>
@@ -139,7 +147,7 @@
         </div>
         <div class="archframe" id="archFrame">
           <img class="artimg" id="artImg" alt="" hidden>
-          <svg id="arch" viewBox="0 0 520 340" role="img" aria-labelledby="archDesc"></svg>
+          <svg id="arch" viewBox="0 0 600 600" role="img" aria-labelledby="archDesc"></svg>
           <span class="sr" id="archDesc">שרטוט אדריכלי שנגזר מהנתונים הנטענים.</span>
           <div class="ownwrap" id="ownWrap" hidden>
             <img id="ownImg" alt="הפרשנות האדריכלית שנשמרה למאגר הזה">
@@ -187,9 +195,8 @@
       </section>
     </div>
 
-    <nav class="more" aria-label="יצירות נוספות">
-      <h2 class="more-title">יצירות נוספות</h2>
-      <div class="more-row" id="strip"></div>
+    <nav class="rail" aria-label="יצירות נוספות">
+      <div class="rail-track" id="strip"></div>
     </nav>
 
     <!-- ===== מגירת הכיוונון: נפתחת מתחת לסרגל העליון ===== -->
@@ -198,6 +205,7 @@
         <h2>כיוונון</h2>
         <label class="sw"><input type="checkbox" id="showHelp"> הסברים</label>
         <label class="sw" title="לכל מאגר נבחרו סולם, כלים ואורך שמדגישים את אופיו. כבו כדי להשוות מאגרים באותו צליל בדיוק."><input type="checkbox" id="applyPreset" checked> הגדרה מומלצת</label>
+        <button class="tbtn" id="repAll" hidden>הכול למקרה המייצג</button>
         <button class="tbtn" id="closeTune">סגירה</button>
       </div>
 

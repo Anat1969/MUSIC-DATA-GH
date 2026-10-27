@@ -16,6 +16,8 @@ let fails=0; const ok=(c,m)=>{ console.log((c?'PASS ':'FAIL ')+m); if(!c) fails+
   ok(!(await p.locator('header >> text=העתקת קישור').first().isVisible().catch(()=>false)),'no loose development buttons in the bar');
   ok(await p.locator('.brand').getAttribute('href')==='#/','app name links home');
   ok(await p.locator('#gallery .work').count()===8,'gallery shows 8 works');
+  const order=await p.evaluate(()=>[...document.querySelectorAll('#view-home > section')].map(s=>s.className.split(' ')[0]));
+  ok(order.join(',')==='hero,works,method,data-band,essay-band','home follows the nav order: '+order.join(','));
   await p.evaluate(async()=>{ for(let y=0;y<6000;y+=500){ scrollTo(0,y); await new Promise(r=>setTimeout(r,60)); } });
   await p.waitForTimeout(800);
   const broken=await p.evaluate(()=>[...document.querySelectorAll('#gallery img')].filter(i=>!i.naturalWidth).length);
@@ -26,7 +28,7 @@ let fails=0; const ok=(c,m)=>{ console.log((c?'PASS ':'FAIL ')+m); if(!c) fails+
   await p.waitForTimeout(600);
   ok(p.url().endsWith('#/work/03_daily_traffic'),'card opens its work');
   ok((await p.textContent('#title')).trim()==='שתי שעות שיא','studio shows the work name');
-  ok(await p.evaluate(()=>document.documentElement.classList.contains('room')),'studio switches to the dark room');
+  ok(await p.evaluate(()=>!document.documentElement.classList.contains('room') && getComputedStyle(document.body).backgroundColor!=='rgb(15, 17, 20)'),'studio stays light, like every screen');
   await p.waitForFunction(()=>document.getElementById('artImg').classList.contains('ready'),null,{timeout:5000}).then(()=>ok(true,'artwork loads in the frame')).catch(()=>ok(false,'artwork loads in the frame'));
   ok((await p.textContent('#archRead')).includes('קמרונות'),'reading describes the image');
 
@@ -48,14 +50,34 @@ let fails=0; const ok=(c,m)=>{ console.log((c?'PASS ':'FAIL ')+m); if(!c) fails+
   await p.click('#openTune'); ok(await p.locator('#tune').isVisible(),'tune drawer opens');
   const top=await p.evaluate(()=>document.getElementById('tune').getBoundingClientRect().top);
   ok(top>=60,'drawer opens beneath the top bar');
-  await p.selectOption('#scale','major'); await p.selectOption('#archType','stack');
+  // כל מכוון נחווה: שינוי בעצירה משמיע האזנה קצרה, ומסומן עם חזרה למקרה המייצג
+  await p.evaluate(()=>{ const t=document.getElementById('tempo'); t.value=40; t.dispatchEvent(new Event('input',{bubbles:true})); });
+  await p.waitForFunction(()=>document.getElementById('app').classList.contains('playing'),null,{timeout:5000})
+    .then(()=>ok(true,'a tuner change while stopped plays a short audition')).catch(()=>ok(false,'a tuner change while stopped plays a short audition'));
+  ok(await p.locator('#tempo').locator('xpath=..').locator('.rep').isVisible(),'changed tuner offers a return to the representative case');
+  await p.locator('#tempo').locator('xpath=..').locator('.rep').click();
+  ok((await p.inputValue('#tempo'))==='16','return restores the representative value');
+  await p.waitForTimeout(300);
+  ok(await p.evaluate(()=>!document.querySelector('#tempo').closest('.field').classList.contains('changed')),'mark clears after the return');
+  await p.selectOption('#scale','major'); await p.waitForTimeout(800);
+  ok(await p.evaluate(()=>document.getElementById('app').classList.contains('playing')),'a structural change keeps playing in the new sound');
+  await p.click('#stop').catch(()=>{});
+  await p.click('#tabArt');
+  await p.selectOption('#archType','stack');
+  ok(await p.evaluate(()=>document.getElementById('tabGen').classList.contains('on')),'touching a space tuner shows the drawing');
+  await p.click('#repAll'); await p.waitForTimeout(300);
+  ok((await p.inputValue('#archType'))==='colonnade' && (await p.inputValue('#scale'))==='minor','all back to the representative case');
   await p.keyboard.press('Escape'); ok(!(await p.locator('#tune').isVisible()),'Esc closes the drawer');
 
   const [dl]=await Promise.all([p.waitForEvent('download',{timeout:5000}).catch(()=>null), p.click('#expSvg')]);
   ok(!!dl,'graph SVG downloads');
 
-  await p.locator('#strip a').nth(7).click(); await p.waitForTimeout(500);
+  await p.hover('.rail'); await p.locator('#strip a').nth(7).dispatchEvent('click'); await p.waitForTimeout(500);
   ok((await p.textContent('#title')).trim()==='החריץ','strip moves to another work');
+  const rail=await p.evaluate(()=>{const r=document.querySelector('.rail').getBoundingClientRect(), m=document.querySelector('.stage').getBoundingClientRect();
+    return {left:r.right<=m.left+1, moving:document.getElementById('strip').classList.contains('moving'), tall:r.height>r.width*2};});
+  ok(rail.left && rail.tall,'works rail is a vertical axis on the left side');
+  ok(rail.moving,'works rail drifts up and down');
 
   await p.click('.nav a[data-nav="data"]'); await p.waitForTimeout(300);
   ok(!(await p.evaluate(()=>document.documentElement.classList.contains('room'))),'data view is light');
@@ -97,7 +119,7 @@ let fails=0; const ok=(c,m)=>{ console.log((c?'PASS ':'FAIL ')+m); if(!c) fails+
     const fit=await d.evaluate(()=>{
       const H=innerHeight, out=[];
       if(document.documentElement.scrollHeight>H+1) out.push('page scrolls '+document.documentElement.scrollHeight);
-      ['#play','#archFrame','#viz','#interp','#openTune','#expWav','#strip'].forEach(q=>{
+      ['#play','#archFrame','#viz','#interp','#openTune','#expWav','.rail'].forEach(q=>{
         const r=document.querySelector(q).getBoundingClientRect();
         if(r.bottom>H+1||r.height<20) out.push(q+' '+Math.round(r.top)+'-'+Math.round(r.bottom));
       });
