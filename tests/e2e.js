@@ -71,6 +71,16 @@ let fails=0; const ok=(c,m)=>{ console.log((c?'PASS ':'FAIL ')+m); if(!c) fails+
 
   await p.goto(BASE+'article.html',{waitUntil:'networkidle'});
   ok(await p.locator('ai-menu .logo').isVisible(),'article has the logo button');
+  const uni=await p.evaluate(()=>{
+    const secs=[...document.querySelectorAll('.mag .page')], out=[];
+    if(secs.length!==13) out.push('sections '+secs.length);
+    secs.forEach((s,i)=>{
+      if(getComputedStyle(s).backgroundColor!=='rgb(255, 255, 255)') out.push(i+' not white');
+      if(!s.querySelector('.pimg')||!s.querySelector('.side')||!s.querySelector('.body')||!s.querySelector('.band')) out.push(i+' missing a slot');
+    });
+    return out;
+  });
+  ok(uni.length===0,'article sections share one white template'+(uni.length?': '+uni.join(', '):''));
   for(const f of ['datasong-article.pdf','datasong-article.docx']){
     const r=await p.request.get(BASE+f); ok(r.ok(),f+' is served');
   }
@@ -108,10 +118,10 @@ let fails=0; const ok=(c,m)=>{ console.log((c?'PASS ':'FAIL ')+m); if(!c) fails+
     await d.goto(BASE+'article.html',{waitUntil:'networkidle'});
     const art=await d.evaluate(()=>{
       const H=innerHeight-document.querySelector('.topbar').offsetHeight, out=[];
-      document.querySelectorAll('.mag-cover,.mag-works .strip').forEach((s,i)=>{ if(Math.abs(s.offsetHeight-H)>2) out.push(i+':'+s.offsetHeight+'/'+H); });
+      document.querySelectorAll('.mag .page').forEach((s,i)=>{ if(Math.abs(s.offsetHeight-H)>2) out.push(i+':'+s.offsetHeight+'/'+H); });
       return out;
     });
-    ok(art.length===0,`article cover and works are one screen each at ${w}x${h}`+(art.length?': '+art.join(', '):''));
+    ok(art.length===0,`every article section is one screen at ${w}x${h}`+(art.length?': '+art.join(', '):''));
     await d.close();
   }
 
