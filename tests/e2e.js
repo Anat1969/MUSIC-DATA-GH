@@ -91,6 +91,29 @@ let fails=0; const ok=(c,m)=>{ console.log((c?'PASS ':'FAIL ')+m); if(!c) fails+
   ok((await p.textContent('#workNo')).includes('הנתונים שלך'),'own data opens in the studio');
   ok(await p.locator('#tabArt').isHidden(),'no artwork tab for own data');
 
+  // קבצי Excel לדוגמה: מורידים מהאפליקציה וגוררים בחזרה, והיצירה נבנית בסטודיו
+  await p.goto(BASE+'#/data',{waitUntil:'networkidle'});
+  ok(await p.locator('.sample a[download]').count()===3,'three sample Excel files offered');
+  const fs=require('fs'), os=require('os'), path=require('path');
+  for(const [file,label,first] of [['01_ashdod_education_by_quarter.xlsx','רובע א','מבני חינוך ל-1,000 תושבים'],
+                                   ['02_ashdod_land_use_mix.xlsx','חוף ומרינה','מגורים %'],
+                                   ['03_wage_by_age_and_sector.xlsx','גיל 22','הייטק (אלפי ₪)']]){
+    const r=await p.request.get(BASE+'samples/'+file); ok(r.ok(), file+' downloads');
+    const tmp=path.join(os.tmpdir(), file); fs.writeFileSync(tmp, await r.body());
+    await p.goto(BASE+'#/data',{waitUntil:'networkidle'});
+    await p.setInputFiles('#file', tmp);
+    await p.waitForURL(/#\/studio/,{timeout:15000}).catch(()=>{});
+    await p.waitForTimeout(400);
+    const st=await p.evaluate(()=>({url:location.hash, creating:document.querySelector('.stage').classList.contains('creating'),
+      labels:DATA && DATA.labels ? DATA.labels.filter(Boolean).slice(0,1)[0] : null,
+      mel:document.getElementById('src_mel').selectedOptions[0].textContent, paths:document.querySelectorAll('#viz path').length,
+      arch:document.getElementById('arch').childElementCount}));
+    ok(st.url==='#/studio' && st.creating && st.paths>2 && st.arch>20, file+' opens the studio and builds the work');
+    ok(st.labels===label && st.mel===first, `${file}: labels "${st.labels}", melody "${st.mel}"`);
+    const meta=await p.evaluate(()=>({t:document.getElementById('title').textContent, story:document.getElementById('ipStory').textContent}));
+    ok(!/_|xlsx/.test(meta.t) && meta.story.length>60, `${file}: title "${meta.t}" and story come from the explanation sheet`);
+  }
+
   await p.goto(BASE+'article.html',{waitUntil:'networkidle'});
   ok(await p.locator('ai-menu .logo').isVisible(),'article has the logo button');
   const uni=await p.evaluate(()=>{

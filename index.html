@@ -316,8 +316,8 @@
       <section class="loadbox" aria-label="טעינת נתונים">
         <label class="drop" id="drop">
           <span class="drop-big">גררו לכאן קובץ</span>
-          <span class="drop-small">CSV, TSV, JSON או טקסט. אפשר כמה קבצים יחד, או לחצו לבחירה.</span>
-          <input type="file" id="file" accept=".json,.csv,.tsv,.txt" multiple hidden>
+          <span class="drop-small">Excel, CSV, JSON או טקסט. אפשר כמה קבצים יחד, או לחצו לבחירה.</span>
+          <input type="file" id="file" accept=".xlsx,.xls,.csv,.tsv,.json,.txt" multiple hidden>
         </label>
         <div class="pastebox">
           <label for="paste">או הדביקו טבלה</label>
@@ -335,6 +335,28 @@
         </div>
         <p class="status" id="status" aria-live="polite">אין נתונים עדיין.</p>
         <a class="btn btn-solid" id="toStudio" href="#/studio" hidden>לפתוח בסטודיו</a>
+      </section>
+
+      <section class="samples" aria-labelledby="samplesTitle">
+        <h2 id="samplesTitle">קבצים לדוגמה</h2>
+        <p class="status">הורידו קובץ, פתחו אותו ב-Excel אם תרצו, וגררו אותו בחזרה לכאן כדי לראות את היצירה נבנית. המספרים הם פרופילים מייצגים (משוערים).</p>
+        <div class="sample-list">
+          <article class="sample">
+            <h3>מבני חינוך לפי רובע באשדוד</h3>
+            <p>15 רובעים לפי שנת האכלוס. צפיפות מבני החינוך משתנה עם מבנה המשפחה: ותיקים, משפחות גדולות, רובעים צעירים.</p>
+            <a class="btn btn-line" href="samples/01_ashdod_education_by_quarter.xlsx" download>הורדת Excel</a>
+          </article>
+          <article class="sample">
+            <h3>מגורים, תעסוקה, מסחר ופנאי</h3>
+            <p>חתך מהים מזרחה ב-24 קטעים. ארבעה שימושים שזזים זה מול זה: כשהמגורים יורדים, התעסוקה עולה.</p>
+            <a class="btn btn-line" href="samples/02_ashdod_land_use_mix.xlsx" download>הורדת Excel</a>
+          </article>
+          <article class="sample">
+            <h3>שכר לפי גיל וענף</h3>
+            <p>שש עקומות שכר לאורך חיי העבודה: הייטק מזנק מוקדם, הציבורי והחינוך עולים לאט עם הוותק, המסחר כמעט שטוח.</p>
+            <a class="btn btn-line" href="samples/03_wage_by_age_and_sector.xlsx" download>הורדת Excel</a>
+          </article>
+        </div>
       </section>
 
       <section class="libwrap" aria-labelledby="libTitle">
