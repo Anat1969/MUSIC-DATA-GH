@@ -87,6 +87,20 @@
 .score .ln{font-size:9px;fill:#707070;text-anchor:end}
 .score figcaption{margin-top:8px;font-size:.85rem;color:#707070}
 .wimg img{max-height:82vh}
+
+/* מסך מחשב: השער ומכל יצירה מסך אחד, בגובה החלון (ענת, 2026-10-27) */
+@media (min-width:1080px) and (min-height:600px){
+  .mag-cover{grid-template-columns:minmax(0,1fr) minmax(0,1fr);height:calc(100svh - var(--bar))}
+  .mag-cover img{height:100%;order:2}
+  .mag-cover-text{align-self:center}
+  .mag h1{font-size:clamp(2.4rem,4.4vw,4.2rem)}
+  .strip,.strip.img-left{height:calc(100svh - var(--bar));grid-template-columns:auto minmax(0,1fr)}
+  .strip.img-left{grid-template-columns:minmax(0,1fr) auto}
+  .strip{overflow:hidden}
+  .wimg{height:calc(100svh - var(--bar))}
+  .wimg img{height:calc(100svh - var(--bar));width:min(calc(100svh - var(--bar)),61.8vw);max-height:none}
+  .wtext{max-width:640px}
+}
 </style>
 <script src="https://appofapp-gh.vercel.app/ai-menu.js"></script>
 </head>
