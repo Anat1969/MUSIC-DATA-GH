@@ -29,7 +29,7 @@ The top bar holds only the app name (links home), content navigation, and ONE lo
 - התבנית ב-`page_html` שב-`tools/build_article.py` והמידות ב-`tools/article_a4.css`. דף חדש נבנה מאותה תבנית, לא מעיצוב חדש.
 - התוכן ב-`tools/article_content.py`. לא לערוך את `article.html` או את `print/article-a4.html` ידנית.
 - בנייה: `python3 -m http.server 8765 &` ואז `python3 tools/build_article.py && node tools/make_pdf.js && python3 tools/build_docx.py`.
-- גרסה לעריכה ב-Canva (ייבוא של ה-PDF, טקסט ותמונות ניתנים לעריכה): https://www.canva.com/d/bc5rAipyyJdPgzd. אחרי שינוי במאמר לייבא מחדש מהכתובת החיה של ה-PDF.
+- גרסה לעריכה ב-Canva (ייבוא של ה-PDF, טקסט ותמונות ניתנים לעריכה): https://www.canva.com/d/L0qFm0D7KTtPJW1 (תבנית לבנה, 13 עמודים). אחרי שינוי במאמר לייבא מחדש מהכתובת החיה של ה-PDF.
 - `make_pdf.js` נכשל אם רכיב חורג מהדף או נוגע במספר העמוד.
 
 ## בדיקה ופריסה
