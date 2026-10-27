@@ -80,6 +80,41 @@ let fails=0; const ok=(c,m)=>{ console.log((c?'PASS ':'FAIL ')+m); if(!c) fails+
   const inst=await cdp.send('Page.getInstallabilityErrors');
   ok(inst.installabilityErrors.length===0,'installable: '+JSON.stringify(inst.installabilityErrors));
 
+  // מסך מחשב: כל מסך מציג את התוכן שלו במלואו בגובה החלון
+  for(const [w,h] of [[1440,900],[1280,720],[1920,1080]]){
+    const d=await b.newPage({viewport:{width:w,height:h}});
+    await d.goto(BASE+'#/work/03_daily_traffic',{waitUntil:'networkidle'}); await d.waitForTimeout(500);
+    const fit=await d.evaluate(()=>{
+      const H=innerHeight, out=[];
+      if(document.documentElement.scrollHeight>H+1) out.push('page scrolls '+document.documentElement.scrollHeight);
+      ['#play','#archFrame','#viz','#interp','#openTune','#expWav','#strip'].forEach(q=>{
+        const r=document.querySelector(q).getBoundingClientRect();
+        if(r.bottom>H+1||r.height<20) out.push(q+' '+Math.round(r.top)+'-'+Math.round(r.bottom));
+      });
+      return out;
+    });
+    ok(fit.length===0,`studio fits one screen at ${w}x${h}`+(fit.length?': '+fit.join(', '):''));
+    await d.goto(BASE+'#/',{waitUntil:'networkidle'});
+    const home=await d.evaluate(()=>{
+      const H=innerHeight-document.querySelector('.topbar').offsetHeight, out=[];
+      document.querySelectorAll('.hero,.method,.works,.essay-band').forEach(s=>{
+        if(Math.abs(s.offsetHeight-H)>2) out.push(s.className+' '+s.offsetHeight+'/'+H);
+      });
+      const g=document.getElementById('works').getBoundingClientRect();
+      document.querySelectorAll('#gallery .work').forEach((c,i)=>{ const r=c.getBoundingClientRect(); if(r.bottom>g.bottom+1) out.push('work '+(i+1)+' overflows'); });
+      return out;
+    });
+    ok(home.length===0,`home sections are one screen each at ${w}x${h}`+(home.length?': '+home.join(', '):''));
+    await d.goto(BASE+'article.html',{waitUntil:'networkidle'});
+    const art=await d.evaluate(()=>{
+      const H=innerHeight-document.querySelector('.topbar').offsetHeight, out=[];
+      document.querySelectorAll('.mag-cover,.mag-works .strip').forEach((s,i)=>{ if(Math.abs(s.offsetHeight-H)>2) out.push(i+':'+s.offsetHeight+'/'+H); });
+      return out;
+    });
+    ok(art.length===0,`article cover and works are one screen each at ${w}x${h}`+(art.length?': '+art.join(', '):''));
+    await d.close();
+  }
+
   const m=await b.newPage({viewport:{width:390,height:844}});
   for(const h of ['#/','#/work/05_population_growth','#/data']){
     await m.goto(BASE+h,{waitUntil:'networkidle'}); await m.waitForTimeout(300);
